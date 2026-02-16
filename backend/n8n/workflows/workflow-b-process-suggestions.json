@@ -1,0 +1,334 @@
+{
+  "name": "Workflow B: Process Suggestions",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a1b2c3d4-0001-4000-8000-000000000001",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "influencer_suggestions",
+        "returnAll": true
+      },
+      "id": "a1b2c3d4-0002-4000-8000-000000000002",
+      "name": "Supabase - Get Suggestions",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [250, 0],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "a1b2c3d4-0003-4000-8000-000000000003",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [500, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/apify~instagram-profile-scraper/run-sync-get-dataset-items",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "token",
+              "value": "YOUR_APIFY_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ \"usernames\": [$json.instagram_username] }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "a1b2c3d4-0004-4000-8000-000000000004",
+      "name": "HTTP Request - Apify",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [750, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst response = items[0].json;\n\n// Apify responds with an array even for a single profile\nconst profile = Array.isArray(response) ? response[0] : response;\n\nif (!profile || !profile.id) {\n  // Profile not found (nonexistent account, etc.)\n  return [];\n}\n\nreturn [{\n  json: {\n    influencer: {\n      id: profile.id,\n      username: profile.username,\n      full_name: profile.fullName || null,\n      biography: profile.biography || null,\n      profile_pic_url: profile.profilePicUrlHD || profile.profilePicUrl || null,\n      followers_count: profile.followersCount || 0,\n      external_url: profile.externalUrl || null,\n      external_url_title: (profile.externalUrls && profile.externalUrls[0]) ? profile.externalUrls[0].title : null,\n      last_synced_at: new Date().toISOString(),\n      updated_at: new Date().toISOString()\n    },\n    latestPosts: profile.latestPosts || [],\n    influencer_id: profile.id\n  }\n}];"
+      },
+      "id": "a1b2c3d4-0005-4000-8000-000000000005",
+      "name": "Profile Mapper",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 0]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "tableId": "influencers",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldName": "id",
+              "fieldValue": "={{ $json.influencer.id }}"
+            },
+            {
+              "fieldName": "username",
+              "fieldValue": "={{ $json.influencer.username }}"
+            },
+            {
+              "fieldName": "full_name",
+              "fieldValue": "={{ $json.influencer.full_name }}"
+            },
+            {
+              "fieldName": "biography",
+              "fieldValue": "={{ $json.influencer.biography }}"
+            },
+            {
+              "fieldName": "profile_pic_url",
+              "fieldValue": "={{ $json.influencer.profile_pic_url }}"
+            },
+            {
+              "fieldName": "followers_count",
+              "fieldValue": "={{ $json.influencer.followers_count }}"
+            },
+            {
+              "fieldName": "external_url",
+              "fieldValue": "={{ $json.influencer.external_url }}"
+            },
+            {
+              "fieldName": "external_url_title",
+              "fieldValue": "={{ $json.influencer.external_url_title }}"
+            },
+            {
+              "fieldName": "last_synced_at",
+              "fieldValue": "={{ $json.influencer.last_synced_at }}"
+            },
+            {
+              "fieldName": "updated_at",
+              "fieldValue": "={{ $json.influencer.updated_at }}"
+            }
+          ]
+        }
+      },
+      "id": "a1b2c3d4-0006-4000-8000-000000000006",
+      "name": "Supabase - Influencers Upsert",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1250, 0],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst posts = data.latestPosts;\nconst influencerId = data.influencer_id;\n\n// Group buying detection keywords\nconst STRONG_KEYWORDS = ['공구', '공동구매', '공구오픈', '공구마감', '공구기간', '공구가', '공구링크'];\nconst COMBO_KEYWORDS = ['오픈', 'open', '마감', '구매', '링크', '프로필', '배송', '선착순', '한정', '할인', '혜택', '이벤트'];\n\nfunction isGroupBuying(post) {\n  const caption = (post.caption || '').toLowerCase();\n  const hashtags = (post.hashtags || []).join(' ').toLowerCase();\n  const text = caption + ' ' + hashtags;\n\n  for (const kw of STRONG_KEYWORDS) {\n    if (text.includes(kw)) return true;\n  }\n\n  let comboCount = 0;\n  for (const kw of COMBO_KEYWORDS) {\n    if (text.includes(kw.toLowerCase())) comboCount++;\n    if (comboCount >= 2) return true;\n  }\n  return false;\n}\n\nfunction parseDateRange(caption, postedAt) {\n  if (!caption) return { start: null, end: null };\n  const year = new Date(postedAt).getFullYear();\n\n  // M/D ~ M/D\n  const rangeSlash = caption.match(/(\\d{1,2})\\/(\\d{1,2})\\s*(?:\\([^)]*\\))?\\s*[~\\-\\u2013]\\s*(\\d{1,2})\\/(\\d{1,2})/);\n  if (rangeSlash) {\n    return {\n      start: new Date(year, parseInt(rangeSlash[1]) - 1, parseInt(rangeSlash[2])).toISOString(),\n      end: new Date(year, parseInt(rangeSlash[3]) - 1, parseInt(rangeSlash[4])).toISOString()\n    };\n  }\n\n  // M월 D일 ~ M월 D일\n  const rangeKor = caption.match(/(\\d{1,2})월\\s*(\\d{1,2})일\\s*[~\\-\\u2013]\\s*(\\d{1,2})월\\s*(\\d{1,2})일/);\n  if (rangeKor) {\n    return {\n      start: new Date(year, parseInt(rangeKor[1]) - 1, parseInt(rangeKor[2])).toISOString(),\n      end: new Date(year, parseInt(rangeKor[3]) - 1, parseInt(rangeKor[4])).toISOString()\n    };\n  }\n\n  // MM.DD - MM.DD\n  const rangeDot = caption.match(/(\\d{2})\\.(\\d{2})\\s*[~\\-\\u2013]\\s*(\\d{2})\\.(\\d{2})/);\n  if (rangeDot) {\n    return {\n      start: new Date(year, parseInt(rangeDot[1]) - 1, parseInt(rangeDot[2])).toISOString(),\n      end: new Date(year, parseInt(rangeDot[3]) - 1, parseInt(rangeDot[4])).toISOString()\n    };\n  }\n\n  // M/D~ (start only)\n  const startOnly = caption.match(/(\\d{1,2})\\/(\\d{1,2})\\s*(?:\\([^)]*\\))?\\s*[~]/);\n  if (startOnly) {\n    return {\n      start: new Date(year, parseInt(startOnly[1]) - 1, parseInt(startOnly[2])).toISOString(),\n      end: null\n    };\n  }\n\n  // ~M/D (end only)\n  const endOnly = caption.match(/[~]\\s*(\\d{1,2})\\/(\\d{1,2})/);\n  if (endOnly) {\n    return {\n      start: postedAt,\n      end: new Date(year, parseInt(endOnly[1]) - 1, parseInt(endOnly[2])).toISOString()\n    };\n  }\n\n  return { start: null, end: null };\n}\n\nconst groupBuyingPosts = [];\nfor (const post of posts) {\n  if (!isGroupBuying(post)) continue;\n\n  const dateRange = parseDateRange(post.caption, post.timestamp);\n\n  groupBuyingPosts.push({\n    id: post.id,\n    influencer_id: influencerId,\n    post_url: post.url,\n    post_type: post.type,\n    caption: post.caption,\n    display_url: post.displayUrl,\n    image_urls: post.images || [],\n    hashtags: post.hashtags || [],\n    group_buying_start: dateRange.start,\n    group_buying_end: dateRange.end,\n    posted_at: post.timestamp,\n    updated_at: new Date().toISOString()\n  });\n}\n\nif (groupBuyingPosts.length === 0) {\n  return [];\n}\n\nreturn groupBuyingPosts.map(p => ({ json: p }));"
+      },
+      "id": "a1b2c3d4-0007-4000-8000-000000000007",
+      "name": "Post Processor",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1500, 0]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "tableId": "posts",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldName": "id",
+              "fieldValue": "={{ $json.id }}"
+            },
+            {
+              "fieldName": "influencer_id",
+              "fieldValue": "={{ $json.influencer_id }}"
+            },
+            {
+              "fieldName": "post_url",
+              "fieldValue": "={{ $json.post_url }}"
+            },
+            {
+              "fieldName": "post_type",
+              "fieldValue": "={{ $json.post_type }}"
+            },
+            {
+              "fieldName": "caption",
+              "fieldValue": "={{ $json.caption }}"
+            },
+            {
+              "fieldName": "display_url",
+              "fieldValue": "={{ $json.display_url }}"
+            },
+            {
+              "fieldName": "image_urls",
+              "fieldValue": "={{ $json.image_urls }}"
+            },
+            {
+              "fieldName": "hashtags",
+              "fieldValue": "={{ $json.hashtags }}"
+            },
+            {
+              "fieldName": "group_buying_start",
+              "fieldValue": "={{ $json.group_buying_start }}"
+            },
+            {
+              "fieldName": "group_buying_end",
+              "fieldValue": "={{ $json.group_buying_end }}"
+            },
+            {
+              "fieldName": "posted_at",
+              "fieldValue": "={{ $json.posted_at }}"
+            },
+            {
+              "fieldName": "updated_at",
+              "fieldValue": "={{ $json.updated_at }}"
+            }
+          ]
+        }
+      },
+      "id": "a1b2c3d4-0008-4000-8000-000000000008",
+      "name": "Supabase - Posts Upsert",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1750, 0],
+      "credentials": {
+        "supabaseApi": {
+          "id": "SUPABASE_CREDENTIAL_ID",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "TRUNCATE TABLE influencer_suggestions",
+        "options": {}
+      },
+      "id": "a1b2c3d4-0009-4000-8000-000000000009",
+      "name": "Postgres - Truncate Suggestions",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [750, 300],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Supabase - Get Suggestions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase - Get Suggestions": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Postgres - Truncate Suggestions",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request - Apify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - Apify": {
+      "main": [
+        [
+          {
+            "node": "Profile Mapper",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Profile Mapper": {
+      "main": [
+        [
+          {
+            "node": "Supabase - Influencers Upsert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase - Influencers Upsert": {
+      "main": [
+        [
+          {
+            "node": "Post Processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post Processor": {
+      "main": [
+        [
+          {
+            "node": "Supabase - Posts Upsert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "versionId": "",
+  "tags": []
+}
