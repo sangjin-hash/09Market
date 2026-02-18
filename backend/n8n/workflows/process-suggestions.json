@@ -112,14 +112,14 @@
     },
     {
       "parameters": {
-        "jsCode": "// Profile Mapper 노드의 출력을 직접 참조 (Postgres Upsert는 원본 데이터를 전달하지 않음)\nconst data = $('Profile Mapper').first().json;\nconst posts = data.latestPosts || [];\nconst influencerId = data.influencer_id;\n\n// 공구 판별 키워드\nconst STRONG_KEYWORDS = ['공구', '공동구매', '공구오픈', '공구마감', '공구기간', '공구가', '공구링크'];\nconst COMBO_KEYWORDS = ['오픈', 'open', '마감', '구매', '링크', '프로필', '배송', '선착순', '한정', '할인', '혜택', '이벤트'];\n\nfunction isGroupBuying(post) {\n  const caption = (post.caption || '').toLowerCase();\n  const hashtags = (post.hashtags || []).join(' ').toLowerCase();\n  const text = caption + ' ' + hashtags;\n\n  for (const kw of STRONG_KEYWORDS) {\n    if (text.includes(kw)) return true;\n  }\n\n  let comboCount = 0;\n  for (const kw of COMBO_KEYWORDS) {\n    if (text.includes(kw.toLowerCase())) comboCount++;\n    if (comboCount >= 2) return true;\n  }\n  return false;\n}\n\n// SQL 이스케이프 헬퍼\nfunction esc(val) {\n  if (val === null || val === undefined) return null;\n  return String(val).replace(/'/g, \"''\");\n}\n\n// PostgreSQL 배열 리터럴 변환\nfunction toPgArray(arr) {\n  if (!arr || arr.length === 0) return '{}';\n  return '{' + arr.map(v => '\"' + String(v).replace(/\"/g, '\\\"') + '\"').join(',') + '}';\n}\n\nconst groupBuyingPosts = [];\nfor (const post of posts) {\n  if (!isGroupBuying(post)) continue;\n\n  groupBuyingPosts.push({\n    id: String(post.id),\n    influencer_id: influencerId,\n    post_url: post.url || '',\n    post_type: post.type || '',\n    caption: esc(post.caption),\n    caption_raw: post.caption || '',\n    display_url: post.displayUrl || '',\n    image_urls_pg: toPgArray(post.images || []),\n    hashtags_pg: toPgArray(post.hashtags || []),\n    posted_at: post.timestamp || null,\n    updated_at: new Date().toISOString()\n  });\n}\n\nif (groupBuyingPosts.length === 0) {\n  return [{ json: { _skip: true } }];\n}\n\nreturn groupBuyingPosts.map(p => ({ json: p }));"
+        "jsCode": "// Profile Mapper 노드의 출력을 직접 참조\nconst data = $('Profile Mapper').first().json;\nconst posts = data.latestPosts || [];\nconst influencerId = data.influencer_id;\nconst externalUrl = data.influencer.external_url || '';\n\n// 기존 게시글 ID 조회 결과 참조 (새 게시글만 처리)\nconst existingResult = $('Postgres - Get Existing Post IDs').first().json;\nconst existingIds = new Set(existingResult.existing_ids || []);\n\n// 공구 판별 키워드\nconst STRONG_KEYWORDS = ['공구', '공동구매', '공구오픈', '공구마감', '공구기간', '공구가', '공구링크'];\nconst COMBO_KEYWORDS = ['오픈', 'open', '마감', '구매', '링크', '프로필', '배송', '선착순', '한정', '할인', '혜택', '이벤트'];\n\nfunction isGroupBuying(post) {\n  const caption = (post.caption || '').toLowerCase();\n  const hashtags = (post.hashtags || []).join(' ').toLowerCase();\n  const text = caption + ' ' + hashtags;\n\n  for (const kw of STRONG_KEYWORDS) {\n    if (text.includes(kw)) return true;\n  }\n\n  let comboCount = 0;\n  for (const kw of COMBO_KEYWORDS) {\n    if (text.includes(kw.toLowerCase())) comboCount++;\n    if (comboCount >= 2) return true;\n  }\n  return false;\n}\n\n// SQL 이스케이프 헬퍼\nfunction esc(val) {\n  if (val === null || val === undefined) return null;\n  return String(val).replace(/'/g, \"''\");\n}\n\n// PostgreSQL 배열 리터럴 변환\nfunction toPgArray(arr) {\n  if (!arr || arr.length === 0) return '{}';\n  return '{' + arr.map(v => '\"' + String(v).replace(/\"/g, '\\\"') + '\"').join(',') + '}';\n}\n\nconst groupBuyingPosts = [];\nfor (const post of posts) {\n  // 이미 DB에 있는 게시글은 스킵\n  if (existingIds.has(String(post.id))) continue;\n\n  if (!isGroupBuying(post)) continue;\n\n  groupBuyingPosts.push({\n    id: String(post.id),\n    influencer_id: influencerId,\n    post_url: post.url || '',\n    post_type: post.type || '',\n    caption: esc(post.caption),\n    caption_raw: post.caption || '',\n    display_url: post.displayUrl || '',\n    image_urls_pg: toPgArray(post.images || []),\n    hashtags_pg: toPgArray(post.hashtags || []),\n    external_url: externalUrl,\n    posted_at: post.timestamp || null,\n    updated_at: new Date().toISOString()\n  });\n}\n\nif (groupBuyingPosts.length === 0) {\n  return [{ json: { _skip: true } }];\n}\n\nreturn groupBuyingPosts.map(p => ({ json: p }));"
       },
       "id": "b1000001-0007-4000-8000-000000000007",
       "name": "Post Processor",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1500,
+        1600,
         0
       ]
     },
@@ -149,7 +149,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        1750,
+        1850,
         0
       ]
     },
@@ -164,7 +164,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        2750,
+        2850,
         -150
       ],
       "credentials": {
@@ -197,14 +197,14 @@
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst year = new Date().getFullYear();\n\nreturn items.map(item => {\n  const caption = item.json.caption_raw || '';\n\n  const body = {\n    model: 'claude-haiku-4-5-20251001',\n    max_tokens: 1024,\n    messages: [{\n      role: 'user',\n      content: [\n        '다음 인스타그램 공동구매 게시글 캡션에서 아래 4가지 정보를 추출하여 JSON으로 반환해주세요.',\n        '',\n        '[캡션]',\n        caption,\n        '',\n        '[추출 항목]',\n        '1. group_buying_start: 공구 시작 날짜 (ISO 8601 형식, 예: ' + year + '-02-13T00:00:00Z). 연도 미명시 시 ' + year + '년 가정.',\n        '2. group_buying_end: 공구 종료 날짜 (ISO 8601 형식). 연도 미명시 시 ' + year + '년 가정.',\n        '3. product_name: 공동구매 상품명 (여러 개이면 쉼표로 구분).',\n        '4. group_buying_url: 공동구매 링크 URL.',\n        '',\n        '찾을 수 없는 항목은 null로 설정하세요. 반드시 JSON만 반환하세요. 다른 설명 없이 JSON 객체만 출력하세요.'\n      ].join('\\n')\n    }]\n  };\n\n  return {\n    json: {\n      ...item.json,\n      _claudeBody: JSON.stringify(body)\n    }\n  };\n});"
+        "jsCode": "const items = $input.all();\nconst year = new Date().getFullYear();\n\nreturn items.map(item => {\n  const caption = item.json.caption_raw || '';\n\n  const body = {\n    model: 'claude-haiku-4-5-20251001',\n    max_tokens: 1024,\n    messages: [{\n      role: 'user',\n      content: [\n        '다음 인스타그램 공동구매 게시글 캡션에서 아래 4가지 정보를 추출하여 JSON으로 반환해주세요.',\n        '',\n        '[캡션]',\n        caption,\n        '',\n        '[추출 항목]',\n        '1. group_buying_start: 공구 시작 날짜 (ISO 8601 형식, 예: ' + year + '-02-13T00:00:00Z). 연도 미명시 시 ' + year + '년 가정. 찾을 수 없으면 null.',\n        '2. group_buying_end: 공구 종료 날짜 (ISO 8601 형식). 연도 미명시 시 ' + year + '년 가정. 찾을 수 없으면 null.',\n        '3. product_name: 공동구매 상품명 (여러 개이면 쉼표로 구분). 찾을 수 없으면 null.',\n        '4. group_buying_url: 공동구매 링크 URL. 캡션에 URL이 직접 있으면 그 URL을 반환. 캡션에 \"프로필 링크\", \"프로필 링크 확인\", \"링크는 프로필\", \"프로필에서 확인\", \"프로필 링크 클릭\" 등 프로필의 링크를 참조하라는 문구가 있으면 정확히 \"PROFILE_LINK\"라고 반환. 둘 다 해당하지 않으면 null.',\n        '',\n        '반드시 JSON만 반환하세요. 다른 설명 없이 JSON 객체만 출력하세요.'\n      ].join('\\n')\n    }]\n  };\n\n  return {\n    json: {\n      ...item.json,\n      _claudeBody: JSON.stringify(body)\n    }\n  };\n});"
       },
       "id": "b1000001-0011-4000-8000-000000000011",
       "name": "Prepare Claude Request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2000,
+        2100,
         -150
       ]
     },
@@ -215,10 +215,6 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "x-api-key",
-              "value": "YOUR_ANTHROPIC_API_KEY"
-            },
             {
               "name": "anthropic-version",
               "value": "2023-06-01"
@@ -237,22 +233,75 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2250,
+        2350,
         -150
       ]
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst originalItems = $('Prepare Claude Request').all();\n\nfunction esc(val) {\n  if (val === null || val === undefined) return null;\n  return String(val).replace(/'/g, \"''\");\n}\n\nconst results = [];\nfor (let i = 0; i < items.length; i++) {\n  const claudeResponse = items[i].json;\n  const original = originalItems[i].json;\n\n  let extracted = {\n    group_buying_start: null,\n    group_buying_end: null,\n    product_name: null,\n    group_buying_url: null\n  };\n\n  try {\n    const text = (claudeResponse.content && claudeResponse.content[0] && claudeResponse.content[0].text) || '';\n    const jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      const parsed = JSON.parse(jsonMatch[0]);\n      extracted.group_buying_start = parsed.group_buying_start || null;\n      extracted.group_buying_end = parsed.group_buying_end || null;\n      extracted.product_name = parsed.product_name || null;\n      extracted.group_buying_url = parsed.group_buying_url || null;\n    }\n  } catch (e) {\n    // Claude 응답 파싱 실패 시 null 유지\n  }\n\n  results.push({\n    json: {\n      id: original.id,\n      influencer_id: original.influencer_id,\n      post_url: original.post_url,\n      post_type: original.post_type,\n      caption: original.caption,\n      display_url: original.display_url,\n      image_urls_pg: original.image_urls_pg,\n      hashtags_pg: original.hashtags_pg,\n      group_buying_start: extracted.group_buying_start,\n      group_buying_end: extracted.group_buying_end,\n      product_name: esc(extracted.product_name),\n      group_buying_url: extracted.group_buying_url,\n      posted_at: original.posted_at,\n      updated_at: original.updated_at\n    }\n  });\n}\n\nreturn results;"
+        "jsCode": "const items = $input.all();\nconst originalItems = $('Prepare Claude Request').all();\n\nfunction esc(val) {\n  if (val === null || val === undefined) return null;\n  return String(val).replace(/'/g, \"''\");\n}\n\nconst results = [];\nfor (let i = 0; i < items.length; i++) {\n  const claudeResponse = items[i].json;\n  const original = originalItems[i].json;\n\n  let extracted = {\n    group_buying_start: null,\n    group_buying_end: null,\n    product_name: null,\n    group_buying_url: null\n  };\n\n  try {\n    const text = (claudeResponse.content && claudeResponse.content[0] && claudeResponse.content[0].text) || '';\n    const jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      const parsed = JSON.parse(jsonMatch[0]);\n      extracted.group_buying_start = parsed.group_buying_start || null;\n      extracted.group_buying_end = parsed.group_buying_end || null;\n      extracted.product_name = parsed.product_name || null;\n      extracted.group_buying_url = parsed.group_buying_url || null;\n    }\n  } catch (e) {\n    // Claude 응답 파싱 실패 시 null 유지\n  }\n\n  // Fallback: group_buying_start가 없으면 posted_at 사용\n  if (!extracted.group_buying_start && original.posted_at) {\n    extracted.group_buying_start = original.posted_at;\n  }\n\n  // PROFILE_LINK 마커 → 인플루언서 external_url로 대체\n  if (extracted.group_buying_url === 'PROFILE_LINK' && original.external_url) {\n    extracted.group_buying_url = original.external_url;\n  } else if (extracted.group_buying_url === 'PROFILE_LINK') {\n    extracted.group_buying_url = null;\n  }\n\n  results.push({\n    json: {\n      id: original.id,\n      influencer_id: original.influencer_id,\n      post_url: original.post_url,\n      post_type: original.post_type,\n      caption: original.caption,\n      display_url: original.display_url,\n      image_urls_pg: original.image_urls_pg,\n      hashtags_pg: original.hashtags_pg,\n      group_buying_start: extracted.group_buying_start,\n      group_buying_end: extracted.group_buying_end,\n      product_name: esc(extracted.product_name),\n      group_buying_url: extracted.group_buying_url,\n      posted_at: original.posted_at,\n      updated_at: original.updated_at\n    }\n  });\n}\n\nreturn results;"
       },
       "id": "b1000001-0013-4000-8000-000000000013",
       "name": "Merge Claude Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2500,
+        2600,
         -150
       ]
+    },
+    {
+      "parameters": {},
+      "id": "b1000001-0014-4000-8000-000000000014",
+      "name": "Sync All Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT username AS instagram_username FROM influencers;",
+        "options": {}
+      },
+      "id": "b1000001-0015-4000-8000-000000000015",
+      "name": "Postgres - Get All Influencers",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        250,
+        -300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COALESCE(json_agg(id), '[]'::json) as existing_ids FROM posts WHERE influencer_id = '{{ $('Profile Mapper').first().json.influencer_id }}'",
+        "options": {}
+      },
+      "id": "b1000001-0016-4000-8000-000000000016",
+      "name": "Postgres - Get Existing Post IDs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1400,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres"
+        }
+      }
     }
   ],
   "connections": {
@@ -268,6 +317,28 @@
       ]
     },
     "Supabase - Get Suggestions": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sync All Trigger": {
+      "main": [
+        [
+          {
+            "node": "Postgres - Get All Influencers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres - Get All Influencers": {
       "main": [
         [
           {
@@ -319,6 +390,17 @@
       ]
     },
     "Postgres - Influencers Upsert": {
+      "main": [
+        [
+          {
+            "node": "Postgres - Get Existing Post IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres - Get Existing Post IDs": {
       "main": [
         [
           {
