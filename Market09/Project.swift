@@ -17,9 +17,10 @@ let project = Project(
                             "UIWindowSceneSessionRoleApplication": [
                                 [
                                     "UISceneConfigurationName": "Default Configuration",
-                                    "UISceneDelegateClassName": "$(PRODUCT_MODULE_NAME).SceneDelegate",
-                                ],
-                            ],
+                                    "UISceneDelegateClassName":
+                                        "$(PRODUCT_MODULE_NAME).SceneDelegate",
+                                ]
+                            ]
                         ],
                     ],
                     "UILaunchScreen": [
@@ -36,6 +37,7 @@ let project = Project(
                 .target(name: "Domain"),
                 .target(name: "Core"),
                 .target(name: "Data"),
+                .external(name: "Swinject"),
             ]
         ),
 
@@ -46,7 +48,7 @@ let project = Project(
             product: .staticFramework,
             bundleId: "com.ios.market09.domain",
             buildableFolders: [
-                "Domain/Sources",
+                "Domain/Sources"
             ],
             dependencies: []
         ),
@@ -58,7 +60,7 @@ let project = Project(
             product: .staticFramework,
             bundleId: "com.ios.market09.core",
             buildableFolders: [
-                "Core/Sources",
+                "Core/Sources"
             ],
             dependencies: []
         ),
@@ -70,7 +72,7 @@ let project = Project(
             product: .staticFramework,
             bundleId: "com.ios.market09.data",
             buildableFolders: [
-                "Data/Sources",
+                "Data/Sources"
             ],
             dependencies: [
                 .target(name: "Domain"),
@@ -87,7 +89,7 @@ let project = Project(
             product: .unitTests,
             bundleId: "com.ios.market09.appTests",
             buildableFolders: [
-                "App/Tests",
+                "App/Tests"
             ],
             dependencies: [.target(name: "App")]
         ),
@@ -97,7 +99,7 @@ let project = Project(
             product: .unitTests,
             bundleId: "com.ios.market09.domainTests",
             buildableFolders: [
-                "Domain/Tests",
+                "Domain/Tests"
             ],
             dependencies: [.target(name: "Domain")]
         ),
@@ -107,7 +109,7 @@ let project = Project(
             product: .unitTests,
             bundleId: "com.ios.market09.dataTests",
             buildableFolders: [
-                "Data/Tests",
+                "Data/Tests"
             ],
             dependencies: [.target(name: "Data")]
         ),
@@ -117,7 +119,7 @@ let project = Project(
             product: .unitTests,
             bundleId: "com.ios.market09.coreTests",
             buildableFolders: [
-                "Core/Tests",
+                "Core/Tests"
             ],
             dependencies: [.target(name: "Core")]
         ),
