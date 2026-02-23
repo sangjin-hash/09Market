@@ -23,7 +23,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         let appCoordinator = AppCoordinator(
             window: window,
-            diContainer: DIContainer.shared
+            diContainer: AppDIContainer.shared
         )
         self.appCoordinator = appCoordinator
         appCoordinator.start()

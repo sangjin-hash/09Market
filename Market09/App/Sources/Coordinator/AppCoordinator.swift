@@ -17,11 +17,11 @@ final class AppCoordinator: Coordinator {
     // MARK: - Properties
 
     private let window: UIWindow
-    private let diContainer: DIContainer
+    private let diContainer: AppDIContainer
 
     // MARK: - Init
 
-    init(window: UIWindow, diContainer: DIContainer) {
+    init(window: UIWindow, diContainer: AppDIContainer) {
         self.window = window
         self.diContainer = diContainer
         self.navigationController = UINavigationController()

@@ -16,12 +16,12 @@ final class HomeCoordinator: Coordinator {
 
     // MARK: - Properties
 
-    private let diContainer: DIContainer
+    private let diContainer: AppDIContainer
     var onFinished: (() -> Void)?
 
     // MARK: - Init
 
-    init(navigationController: UINavigationController, diContainer: DIContainer) {
+    init(navigationController: UINavigationController, diContainer: AppDIContainer) {
         self.navigationController = navigationController
         self.diContainer = diContainer
     }
