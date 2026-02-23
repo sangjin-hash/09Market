@@ -6,6 +6,8 @@
 //
 
 import UIKit
+import Core
+import Home
 
 final class AppCoordinator: Coordinator {
 
@@ -32,23 +34,7 @@ final class AppCoordinator: Coordinator {
     func start() {
         window.rootViewController = navigationController
         window.makeKeyAndVisible()
-        navigate(to: .home)
-    }
-}
-
-// MARK: - Route
-
-extension AppCoordinator {
-
-    enum Route {
-        case home
-    }
-
-    func navigate(to route: Route) {
-        switch route {
-        case .home:
-            showHome()
-        }
+        showHome()
     }
 }
 
@@ -57,15 +43,21 @@ extension AppCoordinator {
 private extension AppCoordinator {
 
     func showHome() {
-        let homeCoordinator = HomeCoordinator(
-            navigationController: navigationController,
-            diContainer: diContainer
-        )
-        homeCoordinator.onFinished = { [weak self, weak homeCoordinator] in
-            guard let homeCoordinator else { return }
-            self?.removeChild(homeCoordinator)
-        }
+        let homeCoordinator = diContainer.resolve(
+            HomeCoordinator.self,
+            argument: navigationController
+        )!
+        homeCoordinator.delegate = self
         addChild(homeCoordinator)
         homeCoordinator.start()
     }
+}
+
+// MARK: - HomeCoordinatorDelegate
+
+extension AppCoordinator: HomeCoordinatorDelegate {
+    // MARK: - 실제 기능 구현 시 필요한 메서드 추가
+    // func homeDidSelectProduct(_ productId: String) { }
+    // func homeDidRequestFilter() { }
+    // func homeDidRequestSafari(url: URL) { }
 }
