@@ -6,6 +6,9 @@
 //
 
 import Swinject
+import HomeImpl
+import Data
+import Domain
 
 final class AppDIContainer {
     static let shared = AppDIContainer()
@@ -16,11 +19,15 @@ final class AppDIContainer {
         assembler.resolver
     }
 
+    func resolve<T>(_ type: T.Type, argument: Any) -> T? {
+        assembler.resolver.resolve(type, argument: argument)
+    }
+
     private init() {
         assembler = Assembler([
             DataAssembly(),
             DomainAssembly(),
-            PresentationAssembly(),
+            HomeAssembly(),
         ])
     }
 }

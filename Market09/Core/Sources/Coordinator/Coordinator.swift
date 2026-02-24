@@ -1,19 +1,19 @@
 //
 //  Coordinator.swift
-//  App
+//  Core
 //
 //  Created by Sangjin Lee
 //
 
 import UIKit
 
-protocol Coordinator: AnyObject {
+public protocol Coordinator: AnyObject {
     var childCoordinators: [Coordinator] { get set }
     var navigationController: UINavigationController { get }
     func start()
 }
 
-extension Coordinator {
+public extension Coordinator {
     func addChild(_ coordinator: Coordinator) {
         childCoordinators.append(coordinator)
     }
