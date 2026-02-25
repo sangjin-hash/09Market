@@ -35,6 +35,8 @@ let project = Project(
                         "UIColorName": "",
                         "UIImageName": "",
                     ],
+                    "SUPABASE_URL": "$(SUPABASE_URL)",
+                    "SUPABASE_ANON_KEY": "$(SUPABASE_ANON_KEY)",
                 ]
             ),
             buildableFolders: [
@@ -47,8 +49,18 @@ let project = Project(
                 .module(.data),
                 .feature(.home, type: .interface),
                 .feature(.home, type: .implement),
+                .feature(.auth, type: .interface),
+                .feature(.auth, type: .implement),
+                .feature(.profile, type: .interface),
+                .feature(.profile, type: .implement),
                 .external(name: "Swinject"),
-            ]
+            ],
+            settings: .settings(
+                configurations: [
+                    .debug(name: "Debug", xcconfig: "App/Sources/Secrets.xcconfig"),
+                    .release(name: "Release", xcconfig: "App/Sources/Secrets.xcconfig"),
+                ]
+            )
         ),
 
         // MARK: - Tests

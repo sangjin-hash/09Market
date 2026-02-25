@@ -25,6 +25,7 @@ let project = Project(
                 .external(name: "Alamofire"),
                 .external(name: "Kingfisher"),
                 .external(name: "Swinject"),
+                .external(name: "Supabase"),
             ]
         ),
         .target(
