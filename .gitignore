@@ -47,3 +47,6 @@ graph.dot
 
 ### bkit docs
 docs/
+
+### Screts.xcconfig
+*.xcconfig
