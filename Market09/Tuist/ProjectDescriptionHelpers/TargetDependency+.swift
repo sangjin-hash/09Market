@@ -11,6 +11,8 @@ import ProjectDescription
 
 public enum Feature: String {
     case home = "Home"
+    case auth = "Authenticate"
+    case profile = "Profile"
 }
 
 public enum FeatureType {
@@ -42,6 +44,7 @@ public enum Module: String {
     case domain = "Domain"
     case core = "Core"
     case data = "Data"
+    case shared = "Shared"
 }
 
 extension TargetDependency {
