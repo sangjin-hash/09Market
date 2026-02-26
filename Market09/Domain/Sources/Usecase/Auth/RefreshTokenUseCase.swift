@@ -6,7 +6,7 @@
 //
 
 public protocol RefreshTokenUseCase {
-    func execute(refreshToken: String) async throws -> AuthToken
+    func execute() async throws -> AuthToken
 }
 
 public final class RefreshTokenUseCaseImpl: RefreshTokenUseCase {
@@ -17,7 +17,7 @@ public final class RefreshTokenUseCaseImpl: RefreshTokenUseCase {
         self.authRepository = authRepository
     }
 
-    public func execute(refreshToken: String) async throws -> AuthToken {
-        try await authRepository.refreshToken(refreshToken)
+    public func execute() async throws -> AuthToken {
+        try await authRepository.refreshToken()
     }
 }
