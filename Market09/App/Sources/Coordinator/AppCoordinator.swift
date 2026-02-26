@@ -7,7 +7,8 @@
 
 import UIKit
 import Core
-import Home
+import Domain
+import Authenticate
 
 final class AppCoordinator: Coordinator {
 
@@ -34,30 +35,49 @@ final class AppCoordinator: Coordinator {
     func start() {
         window.rootViewController = navigationController
         window.makeKeyAndVisible()
-        showHome()
+        startAuth()
     }
 }
 
 // MARK: - Flow
 
 private extension AppCoordinator {
+    
+    func startAuth() {
+        let authCoordinator = diContainer.resolve(AuthCoordinator.self, argument: navigationController)!
+        authCoordinator.delegate = self
+        addChild(authCoordinator)
+        authCoordinator.start()
+    }
 
-    func showHome() {
-        let homeCoordinator = diContainer.resolve(
-            HomeCoordinator.self,
-            argument: navigationController
-        )!
-        homeCoordinator.delegate = self
-        addChild(homeCoordinator)
-        homeCoordinator.start()
+    func showTabBar() {
+        let tabBarCoordinator = TabBarCoordinator(
+            navigationController: navigationController,
+            diContainer: diContainer
+        )
+        addChild(tabBarCoordinator)
+        tabBarCoordinator.start()
     }
 }
 
-// MARK: - HomeCoordinatorDelegate
-
-extension AppCoordinator: HomeCoordinatorDelegate {
-    // MARK: - 실제 기능 구현 시 필요한 메서드 추가
-    // func homeDidSelectProduct(_ productId: String) { }
-    // func homeDidRequestFilter() { }
-    // func homeDidRequestSafari(url: URL) { }
+// MARK: - AuthCoordinatorDelegate
+extension AppCoordinator: AuthCoordinatorDelegate {
+    
+    func authDidCheckOnLaunch(state: AuthState) {
+        switch state {
+        case .anonymous, .authenticated:
+            showTabBar()
+        case .unauthenticated:
+            // TODO: 소셜 재로그인 화면 표시
+            showTabBar()
+        }
+    }
+    
+    func authDidLogin() {
+        navigationController.dismiss(animated: true)
+    }
+    
+    func authDidCancelLogin() {
+        navigationController.dismiss(animated: true)
+    }
 }
