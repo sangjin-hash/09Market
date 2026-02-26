@@ -10,6 +10,12 @@ import ProjectDescriptionHelpers
 
 let project = Project(
     name: "Market09",
+    settings: .settings(
+        configurations: [
+            .debug(name: "Debug", xcconfig: "./Secrets.xcconfig"),
+            .release(name: "Release", xcconfig: "./Secrets.xcconfig"),
+        ]
+    ),
     targets: [
         // MARK: - App
         .target(
@@ -55,12 +61,6 @@ let project = Project(
                 .feature(.profile, type: .implement),
                 .external(name: "Swinject"),
             ],
-            settings: .settings(
-                configurations: [
-                    .debug(name: "Debug", xcconfig: "App/Sources/Secrets.xcconfig"),
-                    .release(name: "Release", xcconfig: "App/Sources/Secrets.xcconfig"),
-                ]
-            )
         ),
 
         // MARK: - Tests

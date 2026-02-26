@@ -9,24 +9,27 @@ import Core
 import Domain
 
 public final class AuthRepositoryImpl: AuthRepository {
-    
+
     private let remoteDataSource: AuthRemoteDataSource
-    private let keychainClient: KeychainClient
-    
-    private init(
+    private let localDataSource: AuthLocalDataSource
+
+    public init(
         remoteDataSource: AuthRemoteDataSource,
-        keychainClient: KeychainClient
+        localDataSource: AuthLocalDataSource
     ) {
         self.remoteDataSource = remoteDataSource
-        self.keychainClient = keychainClient
+        self.localDataSource = localDataSource
     }
-    
+
+    // MARK: - SignIn
+
     public func signInAnonymously() async throws -> AuthToken {
         let response = try await remoteDataSource.signInAnonymously()
-        try saveTokens(response)
+        try localDataSource.saveTokens(accessToken: response.accessToken, refreshToken: response.refreshToken)
+        try localDataSource.saveAnonymousFlag(true)
         return AuthMapper.toAuthTokenEntity(response)
     }
-    
+
     public func signInWithIdToken(
         provider: String,
         idToken: String,
@@ -37,47 +40,44 @@ public final class AuthRepositoryImpl: AuthRepository {
             idToken: idToken,
             nonce: nonce
         )
-        try saveTokens(response)
-        return AuthMapper.toAuthTokenEntity(response)
-    }
-    
-    public func refreshToken(_ refreshToken: String) async throws -> AuthToken {
-        let response = try await remoteDataSource.refreshToken(refreshToken)
-        try saveTokens(response)
-        return AuthMapper.toAuthTokenEntity(response)
-    }
-    
-    public func signOut() async throws {
-        try await remoteDataSource.signOut()
-        try clearTokens()
-    }
-    
-    public func deleteAccount() async throws {
-        try await remoteDataSource.deleteAccount()
-        try clearTokens()
-    }
-    
-    // MARK: - Private
-    
-    private func saveTokens(_ response: AuthTokenResponse) throws {
-        guard let accessToken = response.accessToken.data(using: .utf8),
-              let refreshToken = response.refreshToken.data(using: .utf8) else {
-            throw AppError.storage(.saveFailed)
-        }
         
-        do {
-            try keychainClient.save(key: Constants.KeychainKey.accessToken, data: accessToken)
-            try keychainClient.save(key: Constants.KeychainKey.refreshToken, data: refreshToken)
-        } catch let error as KeychainError {
-            throw KeychainErrorMapper.map(error)
-        }
+        try localDataSource.saveTokens(accessToken: response.accessToken, refreshToken: response.refreshToken)
+        try localDataSource.saveAnonymousFlag(false)
+        return AuthMapper.toAuthTokenEntity(response)
     }
 
-    private func clearTokens() throws {
-        do {
-            try keychainClient.deleteAll()
-        } catch let error as KeychainError {
-            throw KeychainErrorMapper.map(error)
+    // MARK: - Token
+
+    public func refreshToken() async throws -> AuthToken {
+        guard let token = localDataSource.loadToken() else {
+            throw AppError.storage(.notFound)
         }
+        
+        let response = try await remoteDataSource.refreshToken(token.refreshToken)
+        try localDataSource.saveTokens(accessToken: response.accessToken, refreshToken: response.refreshToken)
+        return AuthMapper.toAuthTokenEntity(response)
+    }
+
+    public func currentTokenStatus() -> TokenStatus {
+        TokenStatus.evaluate(
+            token: localDataSource.loadToken(),
+            isAnonymous: localDataSource.isAnonymous()
+        )
+    }
+
+    public func clearToken() throws {
+        try localDataSource.clearTokens()
+    }
+
+    // MARK: - SignOut & Delete Account
+
+    public func signOut() async throws {
+        try await remoteDataSource.signOut()
+        try localDataSource.clearTokens()
+    }
+
+    public func deleteAccount() async throws {
+        try await remoteDataSource.deleteAccount()
+        try localDataSource.clearTokens()
     }
 }
