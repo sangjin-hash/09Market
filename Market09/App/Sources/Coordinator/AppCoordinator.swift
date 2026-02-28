@@ -21,6 +21,7 @@ final class AppCoordinator: Coordinator {
 
     private let window: UIWindow
     private let diContainer: AppDIContainer
+    private var currentUser: User?
 
     // MARK: - Init
 
@@ -44,7 +45,10 @@ final class AppCoordinator: Coordinator {
 private extension AppCoordinator {
     
     func startAuth() {
-        let authCoordinator = diContainer.resolve(AuthCoordinator.self, argument: navigationController)!
+        let authCoordinator = diContainer.resolve(
+            AuthCoordinator.self,
+            argument: navigationController
+        )!
         authCoordinator.delegate = self
         addChild(authCoordinator)
         authCoordinator.start()
@@ -60,13 +64,20 @@ private extension AppCoordinator {
     }
 }
 
+
 // MARK: - AuthCoordinatorDelegate
+
 extension AppCoordinator: AuthCoordinatorDelegate {
     
     func authDidCheckOnLaunch(state: AuthState) {
         switch state {
-        case .anonymous, .authenticated:
+        case .anonymous:
             showTabBar()
+            
+        case .authenticated(let user):
+            currentUser = user
+            showTabBar()
+            
         case .unauthenticated:
             // TODO: 소셜 재로그인 화면 표시
             showTabBar()

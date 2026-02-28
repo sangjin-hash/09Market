@@ -7,6 +7,6 @@
 
 public enum AuthState {
     case anonymous
-    case authenticated
+    case authenticated(User)
     case unauthenticated
 }
