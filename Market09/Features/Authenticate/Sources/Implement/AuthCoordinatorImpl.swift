@@ -7,6 +7,7 @@
 
 import UIKit
 import RxSwift
+import RxCocoa
 import Core
 import Authenticate
 
@@ -52,6 +53,19 @@ final class AuthCoordinatorImpl: AuthCoordinator {
             })
             .disposed(by: disposeBag)
 
+        launchAuthReactor.state.map(\.error)
+            .compactMap { $0 }
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] error in
+                guard let self else { return }
+                ErrorDialog.show(
+                    on: self.navigationController,
+                    error: error,
+                    retryAction: { self.launchAuthReactor.action.onNext(.checkAuth) }
+                )
+            })
+            .disposed(by: disposeBag)
+
         launchAuthReactor.action.onNext(.checkAuth)
     }
     
@@ -60,6 +74,18 @@ final class AuthCoordinatorImpl: AuthCoordinator {
     public func showLogin() {
         let viewController = LoginViewController()
         viewController.reactor = loginReactor
+        
+        // 로그인 성공 시 delegate 호출
+        loginReactor.state.map(\.isLoginCompleted)
+            .distinctUntilChanged()
+            .filter { $0 }
+            .take(1)
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] _ in
+                self?.delegate?.authDidLogin()
+            })
+            .disposed(by: disposeBag)
+        
         navigationController.present(
             UINavigationController(rootViewController: viewController),
             animated: false

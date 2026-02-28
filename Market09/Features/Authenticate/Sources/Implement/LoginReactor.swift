@@ -14,9 +14,9 @@ import Shared
 final class LoginReactor: Reactor {
 
     enum Action {
-        case googleLoginTapped
-        case appleLoginTapped
         case googleLoginCompleted(idToken: String)
+        case googleLoginFailed
+        case appleLoginTapped
         case appleLoginCompleted(idToken: String, nonce: String)
     }
     
@@ -45,12 +45,6 @@ extension LoginReactor {
     
     func mutate(action: Action) -> Observable<Mutation> {
         switch action {
-        case .googleLoginTapped:
-            return .empty() // VC에서 GoogleSignIn SDK 호출 후 googleLoginCompleted로 전달
-
-        case .appleLoginTapped:
-            return .empty() // VC에서 ASAuthorizationController 호출 후 appleLoginCompleted로 전달
-
         case .googleLoginCompleted(let idToken):
             return Observable.concat([
                 .just(.setLoading(true)),
@@ -65,7 +59,15 @@ extension LoginReactor {
                 .catch { .just(.setError($0 as? AppError)) },
                 .just(.setLoading(false))
             ])
+            
+        case .googleLoginFailed:
+            return .just(.setError(AppError.auth(.providerFailed)))
 
+        // TODO: - 추후 Apple Login 연동 때 작업할 것
+            
+        case .appleLoginTapped:
+            return .empty()
+            
         case .appleLoginCompleted(let idToken, let nonce):
             return Observable.concat([
                 .just(.setLoading(true)),

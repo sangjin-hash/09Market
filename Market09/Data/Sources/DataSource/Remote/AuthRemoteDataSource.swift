@@ -108,7 +108,10 @@ public final class AuthRemoteDataSourceImpl: AuthRemoteDataSource {
 //            try await self.client.auth.signOut()
 //        }
     }
+}
 
+extension AuthRemoteDataSourceImpl {
+    
     // MARK: - Private
 
     @discardableResult

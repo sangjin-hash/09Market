@@ -15,20 +15,8 @@ public final class DomainAssembly: Assembly {
         
         // MARK: - Auth
         
-        container.register(SignInAnonymouslyUseCase.self) { resolver in
-            SignInAnonymouslyUseCaseImpl(
-                authRepository: resolver.resolve(AuthRepository.self)!
-            )
-        }.inObjectScope(.container)
-
         container.register(SignInWithIdTokenUseCase.self) { resolver in
             SignInWithIdTokenUseCaseImpl(
-                authRepository: resolver.resolve(AuthRepository.self)!
-            )
-        }.inObjectScope(.container)
-
-        container.register(RefreshTokenUseCase.self) { resolver in
-            RefreshTokenUseCaseImpl(
                 authRepository: resolver.resolve(AuthRepository.self)!
             )
         }.inObjectScope(.container)
@@ -45,9 +33,18 @@ public final class DomainAssembly: Assembly {
             )
         }.inObjectScope(.container)
 
+        // MARK: - User
+
+        container.register(GetMeUseCase.self) { resolver in
+            GetMeUseCaseImpl(
+                userRepository: resolver.resolve(UserRepository.self)!
+            )
+        }.inObjectScope(.container)
+
         container.register(CheckAuthOnLaunchUseCase.self) { resolver in
             CheckAuthOnLaunchUseCaseImpl(
-                authRepository: resolver.resolve(AuthRepository.self)!
+                authRepository: resolver.resolve(AuthRepository.self)!,
+                userRepository: resolver.resolve(UserRepository.self)!
             )
         }.inObjectScope(.container)
     }
