@@ -5,6 +5,7 @@
 //  Created by Sangjin Lee
 //
 
+import Core
 import Swinject
 
 public final class DomainAssembly: Assembly {
@@ -12,24 +13,34 @@ public final class DomainAssembly: Assembly {
     public init() {}
 
     public func assemble(container: Container) {
-        
+
+        // MARK: - UserStore
+
+        container.register(UserStore.self) { _ in
+            UserStore()
+        }.inObjectScope(.container)
+
         // MARK: - Auth
-        
+
         container.register(SignInWithIdTokenUseCase.self) { resolver in
             SignInWithIdTokenUseCaseImpl(
-                authRepository: resolver.resolve(AuthRepository.self)!
+                authRepository: resolver.resolve(AuthRepository.self)!,
+                userRepository: resolver.resolve(UserRepository.self)!,
+                userStore: resolver.resolve(UserStore.self)!
             )
         }.inObjectScope(.container)
 
         container.register(SignOutUseCase.self) { resolver in
             SignOutUseCaseImpl(
-                authRepository: resolver.resolve(AuthRepository.self)!
+                authRepository: resolver.resolve(AuthRepository.self)!,
+                userStore: resolver.resolve(UserStore.self)!
             )
         }.inObjectScope(.container)
 
         container.register(DeleteAccountUseCase.self) { resolver in
             DeleteAccountUseCaseImpl(
-                authRepository: resolver.resolve(AuthRepository.self)!
+                authRepository: resolver.resolve(AuthRepository.self)!,
+                userStore: resolver.resolve(UserStore.self)!
             )
         }.inObjectScope(.container)
 
@@ -44,7 +55,8 @@ public final class DomainAssembly: Assembly {
         container.register(CheckAuthOnLaunchUseCase.self) { resolver in
             CheckAuthOnLaunchUseCaseImpl(
                 authRepository: resolver.resolve(AuthRepository.self)!,
-                userRepository: resolver.resolve(UserRepository.self)!
+                userRepository: resolver.resolve(UserRepository.self)!,
+                userStore: resolver.resolve(UserStore.self)!
             )
         }.inObjectScope(.container)
     }

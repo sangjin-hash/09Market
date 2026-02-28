@@ -21,7 +21,6 @@ final class AppCoordinator: Coordinator {
 
     private let window: UIWindow
     private let diContainer: AppDIContainer
-    private var currentUser: User?
 
     // MARK: - Init
 
@@ -74,8 +73,7 @@ extension AppCoordinator: AuthCoordinatorDelegate {
         case .anonymous:
             showTabBar()
             
-        case .authenticated(let user):
-            currentUser = user
+        case .authenticated:
             showTabBar()
             
         case .unauthenticated:

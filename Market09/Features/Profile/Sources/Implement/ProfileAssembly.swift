@@ -19,7 +19,8 @@ public final class ProfileAssembly: Assembly {
         container.register(ProfileReactor.self) { resolver in
             ProfileReactor(
                 signOutUseCase: resolver.resolve(SignOutUseCase.self)!,
-                deleteAccountUseCase: resolver.resolve(DeleteAccountUseCase.self)!
+                deleteAccountUseCase: resolver.resolve(DeleteAccountUseCase.self)!,
+                userStore: resolver.resolve(UserStore.self)!
             )
         }
         

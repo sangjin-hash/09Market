@@ -14,6 +14,7 @@ let project = Project(
         name: "Authenticate",
         dependencies: [
             .module(.core),
+            .module(.domain),
         ]
     ) + Project.implementTargets(
         name: "Authenticate",
