@@ -45,8 +45,6 @@ enum SupabaseErrorMapper {
         case .sessionNotFound, .sessionExpired,
              .refreshTokenNotFound, .refreshTokenAlreadyUsed:
             return .auth(.sessionExpired)
-        case .userBanned:
-            return .auth(.userBanned)
         case .signupDisabled, .anonymousProviderDisabled:
             return .auth(.providerFailed)
         case .overRequestRateLimit, .overEmailSendRateLimit, .overSMSSendRateLimit:
@@ -57,7 +55,7 @@ enum SupabaseErrorMapper {
 
         switch statusCode {
         case 401:    return .auth(.invalidCredentials)
-        case 403:    return .auth(.userBanned)
+        case 403:    return .auth(.providerFailed)
         case 404:    return .network(.notFound)
         case 429:    return .auth(.rateLimited)
         case 500...: return .network(.serverError(statusCode: statusCode))
