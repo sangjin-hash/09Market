@@ -41,8 +41,24 @@ let project = Project(
                         "UIColorName": "",
                         "UIImageName": "",
                     ],
+                    // Supabase
                     "SUPABASE_URL": "$(SUPABASE_URL)",
                     "SUPABASE_ANON_KEY": "$(SUPABASE_ANON_KEY)",
+                    
+                    // Goole
+                    "GIDClientID": "$(GOOGLE_CLIENT_ID)",
+                    
+                    // URL Scheme for Google Sign-In callback
+                    "CFBundleURLTypes": [
+                        [
+                            "CFBundleURLSchemes": [
+                                "$(GOOGLE_URL_SCHEME)"  // reversed client ID
+                            ]
+                        ]
+                    ],
+                    
+                    // EndPoint
+                    "API_ME": "$(API_ME)",
                 ]
             ),
             buildableFolders: [

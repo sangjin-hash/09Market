@@ -10,6 +10,7 @@ import ReactorKit
 import RxSwift
 import RxCocoa
 import Core
+import GoogleSignIn
 
 final class LoginViewController: UIViewController {
     
@@ -42,13 +43,31 @@ final class LoginViewController: UIViewController {
 
 extension LoginViewController: View {
     
-    // MARK: - Bind
-
     func bind(reactor: LoginReactor) {
-        // Action
+        
+        // MARK: - Action
+        
         googleLoginButton.rx.tap
-            .map { Reactor.Action.googleLoginTapped }
-            .bind(to: reactor.action)
+            .subscribe(onNext: { [weak self] in
+                guard let self else { return }
+
+                GIDSignIn.sharedInstance.signIn(withPresenting: self) { [weak self] result, error in
+                    guard let self, let reactor = self.reactor else { return }
+
+                    if let error {
+                        if (error as NSError).code == GIDSignInError.canceled.rawValue { return }
+                        reactor.action.onNext(.googleLoginFailed)
+                        return
+                    }
+
+                    guard let idToken = result?.user.idToken?.tokenString else {
+                        reactor.action.onNext(.googleLoginFailed)
+                        return
+                    }
+
+                    reactor.action.onNext(.googleLoginCompleted(idToken: idToken))
+                }
+            })
             .disposed(by: disposeBag)
 
         appleLoginButton.rx.tap
@@ -56,14 +75,14 @@ extension LoginViewController: View {
             .bind(to: reactor.action)
             .disposed(by: disposeBag)
 
-        // State
-        reactor.state.map(\.isLoginCompleted)
-            .distinctUntilChanged()
-            .filter { $0 }
+        // MARK: - State
+        
+        reactor.state.map(\.error)
+            .compactMap { $0 }
             .observe(on: MainScheduler.instance)
-            .subscribe(onNext: { [weak self] _ in
-                // TODO: Coordinator에서 dismiss 처리
-                // TODO: Step 11에서 delegate 연결
+            .subscribe(onNext: { [weak self] error in
+                guard let self else { return }
+                ErrorDialog.show(on: self, error: error)
             })
             .disposed(by: disposeBag)
     }
