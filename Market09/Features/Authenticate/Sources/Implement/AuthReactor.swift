@@ -1,17 +1,18 @@
 //
-//  LaunchAuthReactor.swift
+//  AuthReactor.swift
 //  AuthenticateImpl
 //
 //  Created by Sangjin Lee
 //
 
-import ReactorKit
-import RxSwift
-import Domain
 import Core
+import Domain
 import Shared
 
-final class LaunchAuthReactor: Reactor {
+import ReactorKit
+import RxSwift
+
+final class AuthReactor: Reactor {
     
     enum Action {
         case checkAuth
@@ -36,7 +37,7 @@ final class LaunchAuthReactor: Reactor {
     }
 }
 
-extension LaunchAuthReactor {
+extension AuthReactor {
     
     func mutate(action: Action) -> Observable<Mutation> {
         switch action {

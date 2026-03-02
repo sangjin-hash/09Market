@@ -5,25 +5,20 @@
 //  Created by Sangjin Lee
 //
 
-import UIKit
-import Swinject
+import Authenticate
 import Core
 import Domain
-import Authenticate
+import UIKit
+
+import Swinject
 
 public final class AuthAssembly: Assembly {
     
     public init() {}
     
     public func assemble(container: Container) {
-        container.register(LoginReactor.self) { resolver in
-            LoginReactor(
-                signInWithIdTokenUseCase: resolver.resolve(SignInWithIdTokenUseCase.self)!
-            )
-        }
-        
-        container.register(LaunchAuthReactor.self) { resolver in
-            LaunchAuthReactor(
+        container.register(AuthReactor.self) { resolver in
+            AuthReactor(
                 checkAuthOnLaunchUseCase: resolver.resolve(CheckAuthOnLaunchUseCase.self)!
             )
         }
@@ -31,8 +26,7 @@ public final class AuthAssembly: Assembly {
         container.register(AuthCoordinator.self) { (resolver, navigation: UINavigationController) in
             AuthCoordinatorImpl(
                 navigationController: navigation,
-                launchAuthReactor: resolver.resolve(LaunchAuthReactor.self)!,
-                loginReactor: resolver.resolve(LoginReactor.self)!
+                authReactor: resolver.resolve(AuthReactor.self)!
             )
         }
     }

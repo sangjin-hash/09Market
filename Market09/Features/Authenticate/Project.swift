@@ -26,7 +26,6 @@ let project = Project(
             .external(name: "ReactorKit"),
             .external(name: "RxSwift"),
             .external(name: "RxCocoa"),
-            .external(name: "GoogleSignIn"),
         ]
     )
 )
