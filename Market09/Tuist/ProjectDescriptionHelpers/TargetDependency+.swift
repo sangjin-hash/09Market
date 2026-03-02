@@ -13,6 +13,7 @@ public enum Feature: String {
     case home = "Home"
     case auth = "Authenticate"
     case profile = "Profile"
+    case login = "Login"
 }
 
 public enum FeatureType {
