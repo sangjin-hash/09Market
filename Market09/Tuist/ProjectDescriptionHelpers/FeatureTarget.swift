@@ -25,12 +25,7 @@ extension Project {
             infoPlist: infoPlist,
             sources: sources ?? ["Sources/Interface/**"],
             resources: nil,
-            dependencies: dependencies,
-            settings: .settings(
-                base: [
-                    "OTHER_LDFLAGS": ["$(inherited)", "-ObjC"]
-                ]
-            )
+            dependencies: dependencies
         )
         return [target]
     }
@@ -51,12 +46,7 @@ extension Project {
             infoPlist: infoPlist,
             sources: sources ?? ["Sources/Implement/**"],
             resources: nil,
-            dependencies: [.target(name: name)] + dependencies,
-            settings: .settings(
-                base: [
-                    "OTHER_LDFLAGS": ["$(inherited)", "-ObjC"]
-                ]
-            )
+            dependencies: [.target(name: name)] + dependencies
         )
         return [target]
     }
