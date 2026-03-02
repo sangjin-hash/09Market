@@ -5,9 +5,12 @@
 //  Created by Sangjin Lee
 //
 
-import UIKit
 import Core
 import Profile
+import UIKit
+
+import RxCocoa
+import RxSwift
 
 final class ProfileCoordinatorImpl: ProfileCoordinator {
     
@@ -16,13 +19,17 @@ final class ProfileCoordinatorImpl: ProfileCoordinator {
     public var childCoordinators: [Coordinator] = []
     public let navigationController: UINavigationController
 
+    
     // MARK: - Delegate
 
     public weak var delegate: ProfileCoordinatorDelegate?
     
+    
     // MARK: - Reactor
     
     private let reactor: ProfileReactor
+    private let disposeBag = DisposeBag()
+    
 
     // MARK: - Init
 
@@ -30,12 +37,21 @@ final class ProfileCoordinatorImpl: ProfileCoordinator {
         self.navigationController = navigationController
         self.reactor = reactor
     }
+    
 
     // MARK: - Start
 
     public func start() {
         let viewController = ProfileViewController()
         viewController.reactor = reactor
+        
+        reactor.pulse(\.$loginRequested)
+            .compactMap { $0 }
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] _ in
+                self?.delegate?.profileDidRequestLogin()
+            })
+            .disposed(by: disposeBag)
         navigationController.setViewControllers([viewController], animated: false)
     }
 }

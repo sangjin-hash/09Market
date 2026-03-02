@@ -22,12 +22,14 @@ final class ProfileReactor: Reactor {
     
     enum Mutation {
         case setUser(User?)
+        case setLoginRequested
         case setLoading(Bool)
         case setError(AppError?)
     }
 
     struct State {
         var user: User?
+        @Pulse var loginRequested: Void?
         var isLoggedIn: Bool = false
         var isLoading: Bool = false
         var error: AppError? = nil
@@ -65,7 +67,7 @@ extension ProfileReactor {
             return .empty()
 
         case .loginButtonTapped:
-            return .empty()
+            return .just(.setLoginRequested)
 
         case .logoutButtonTapped:
             return Observable.concat([
@@ -86,15 +88,20 @@ extension ProfileReactor {
             ])
         }
     }
-
+    
     func reduce(state: State, mutation: Mutation) -> State {
         var newState = state
         switch mutation {
         case .setUser(let user):
             newState.user = user
             newState.isLoggedIn = user != nil
+            
+        case .setLoginRequested:
+            newState.loginRequested = Void()
+            
         case .setLoading(let value):
             newState.isLoading = value
+            
         case .setError(let error):
             newState.error = error
         }

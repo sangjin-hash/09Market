@@ -5,12 +5,14 @@
 //  Created by Sangjin Lee
 //
 
-import Swinject
-import HomeImpl
 import Data
 import Domain
-import ProfileImpl
 import AuthenticateImpl
+import HomeImpl
+import LoginImpl
+import ProfileImpl
+
+import Swinject
 
 final class AppDIContainer {
     static let shared = AppDIContainer()
@@ -29,9 +31,11 @@ final class AppDIContainer {
         assembler = Assembler([
             DataAssembly(),
             DomainAssembly(),
-            HomeAssembly(),
-            ProfileAssembly(),
+            
             AuthAssembly(),
+            HomeAssembly(),
+            LoginAssembly(),
+            ProfileAssembly(),
         ])
     }
 }
