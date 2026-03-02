@@ -1,16 +1,17 @@
 //
 //  LoginViewController.swift
-//  AuthenticateImpl
+//  LoginImpl
 //
 //  Created by Sangjin Lee
 //
 
-import UIKit
-import ReactorKit
-import RxSwift
-import RxCocoa
 import Core
+import UIKit
+
 import GoogleSignIn
+import ReactorKit
+import RxCocoa
+import RxSwift
 
 final class LoginViewController: UIViewController {
     
@@ -38,6 +39,16 @@ final class LoginViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
         setupLayout()
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        navigationController?.setNavigationBarHidden(false, animated: animated)
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        navigationController?.setNavigationBarHidden(true, animated: animated)
     }
 }
 
@@ -91,7 +102,7 @@ extension LoginViewController: View {
 extension LoginViewController {
     
     // MARK: - Layout
-    
+
     private func setupLayout() {
         let stackView = UIStackView(arrangedSubviews: [
             googleLoginButton, appleLoginButton

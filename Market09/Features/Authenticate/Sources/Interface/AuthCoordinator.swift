@@ -9,6 +9,4 @@ import Core
 
 public protocol AuthCoordinator: Coordinator {
     var delegate: AuthCoordinatorDelegate? { get set }
-    
-    func showLogin()
 }

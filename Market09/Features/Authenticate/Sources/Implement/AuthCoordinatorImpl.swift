@@ -5,11 +5,12 @@
 //  Created by Sangjin Lee
 //
 
-import UIKit
-import RxSwift
-import RxCocoa
-import Core
 import Authenticate
+import Core
+import UIKit
+
+import RxCocoa
+import RxSwift
 
 final class AuthCoordinatorImpl: AuthCoordinator {
     
@@ -24,8 +25,7 @@ final class AuthCoordinatorImpl: AuthCoordinator {
     
     // MARK: - Reactor
     
-    private let launchAuthReactor: LaunchAuthReactor
-    private let loginReactor: LoginReactor
+    private let authReactor: AuthReactor
     private let disposeBag = DisposeBag()
     
     
@@ -33,18 +33,16 @@ final class AuthCoordinatorImpl: AuthCoordinator {
     
     public init(
         navigationController: UINavigationController,
-        launchAuthReactor: LaunchAuthReactor,
-        loginReactor: LoginReactor
+        authReactor: AuthReactor
     ) {
         self.navigationController = navigationController
-        self.launchAuthReactor = launchAuthReactor
-        self.loginReactor = loginReactor
+        self.authReactor = authReactor
     }
     
     // MARK: - Launch the App(Splash)
     
     public func start() {
-        launchAuthReactor.state.map(\.authState)
+        authReactor.state.map(\.authState)
             .compactMap { $0 }
             .take(1)
             .observe(on: MainScheduler.instance)
@@ -53,7 +51,7 @@ final class AuthCoordinatorImpl: AuthCoordinator {
             })
             .disposed(by: disposeBag)
 
-        launchAuthReactor.state.map(\.error)
+        authReactor.state.map(\.error)
             .compactMap { $0 }
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] error in
@@ -61,35 +59,11 @@ final class AuthCoordinatorImpl: AuthCoordinator {
                 ErrorDialog.show(
                     on: self.navigationController,
                     error: error,
-                    retryAction: { self.launchAuthReactor.action.onNext(.checkAuth) }
+                    retryAction: { self.authReactor.action.onNext(.checkAuth) }
                 )
             })
             .disposed(by: disposeBag)
 
-        launchAuthReactor.action.onNext(.checkAuth)
+        authReactor.action.onNext(.checkAuth)
     }
-    
-    // MARK: - Login
-    
-    public func showLogin() {
-        let viewController = LoginViewController()
-        viewController.reactor = loginReactor
-        
-        // 로그인 성공 시 delegate 호출
-        loginReactor.state.map(\.isLoginCompleted)
-            .distinctUntilChanged()
-            .filter { $0 }
-            .take(1)
-            .observe(on: MainScheduler.instance)
-            .subscribe(onNext: { [weak self] _ in
-                self?.delegate?.authDidLogin()
-            })
-            .disposed(by: disposeBag)
-        
-        navigationController.present(
-            UINavigationController(rootViewController: viewController),
-            animated: false
-        )
-    }
-    
 }

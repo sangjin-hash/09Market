@@ -75,8 +75,15 @@ let project = Project(
                 .feature(.auth, type: .implement),
                 .feature(.profile, type: .interface),
                 .feature(.profile, type: .implement),
+                .feature(.login, type: .interface),
+                .feature(.login, type: .implement),
                 .external(name: "Swinject"),
             ],
+            settings: .settings(
+                base: [
+                    "OTHER_LDFLAGS": ["$(inherited)", "-ObjC"]
+                ]
+            )
         ),
 
         // MARK: - Tests

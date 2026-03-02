@@ -5,10 +5,12 @@
 //  Created by Sangjin Lee
 //
 
-import UIKit
 import Core
 import Domain
 import Authenticate
+import Login
+import Profile
+import UIKit
 
 final class AppCoordinator: Coordinator {
 
@@ -16,12 +18,19 @@ final class AppCoordinator: Coordinator {
 
     var childCoordinators: [Coordinator] = []
     let navigationController: UINavigationController
+    
 
     // MARK: - Properties
 
+    private enum LoginContext {
+        case launch
+        case profile
+    }
+
     private let window: UIWindow
     private let diContainer: AppDIContainer
-    private var currentUser: User?
+    private var loginContext: LoginContext?
+    
 
     // MARK: - Init
 
@@ -30,6 +39,7 @@ final class AppCoordinator: Coordinator {
         self.diContainer = diContainer
         self.navigationController = UINavigationController()
     }
+    
 
     // MARK: - Start
 
@@ -40,27 +50,44 @@ final class AppCoordinator: Coordinator {
     }
 }
 
+
 // MARK: - Flow
 
 private extension AppCoordinator {
-    
+    /// 앱 실행 시 인증/인가 작업 처리
     func startAuth() {
         let authCoordinator = diContainer.resolve(
             AuthCoordinator.self,
             argument: navigationController
         )!
+        
         authCoordinator.delegate = self
         addChild(authCoordinator)
         authCoordinator.start()
     }
 
+    /// 홈 화면으로 이동
     func showTabBar() {
         let tabBarCoordinator = TabBarCoordinator(
             navigationController: navigationController,
-            diContainer: diContainer
+            diContainer: diContainer,
+            profileDelegate: self
         )
+
         addChild(tabBarCoordinator)
         tabBarCoordinator.start()
+    }
+
+    /// 로그인 화면으로 이동
+    func showLogin() {
+        let loginCoordinator = diContainer.resolve(
+            LoginCoordinator.self,
+            argument: navigationController
+        )!
+
+        loginCoordinator.delegate = self
+        addChild(loginCoordinator)
+        loginCoordinator.start()
     }
 }
 
@@ -68,27 +95,57 @@ private extension AppCoordinator {
 // MARK: - AuthCoordinatorDelegate
 
 extension AppCoordinator: AuthCoordinatorDelegate {
-    
+    /// 런치 시 인증 상태 확인 완료 후 분기 처리
     func authDidCheckOnLaunch(state: AuthState) {
         switch state {
         case .anonymous:
             showTabBar()
             
-        case .authenticated(let user):
-            currentUser = user
+        case .authenticated:
             showTabBar()
             
         case .unauthenticated:
-            // TODO: 소셜 재로그인 화면 표시
-            showTabBar()
+            loginContext = .launch
+            showLogin()
         }
     }
-    
-    func authDidLogin() {
-        navigationController.dismiss(animated: true)
+}
+
+
+// MARK: - ProfileCoordinatorDelegate
+
+extension AppCoordinator: ProfileCoordinatorDelegate {
+    /// 프로필 탭에서 로그인 요청 시 로그인 화면으로 이동
+    func profileDidRequestLogin() {
+        loginContext = .profile
+        showLogin()
     }
     
-    func authDidCancelLogin() {
-        navigationController.dismiss(animated: true)
+    /// 프로필 탭에서 로그아웃 요청
+    func profileDidRequestLogout() {
+        
+    }
+    
+    /// 프로필 탭에서 회원 탈퇴 요청
+    func profileDidRequestDeleteAccount() {
+        
+    }
+}
+
+
+// MARK: - LoginCoordinatorDelegate
+
+extension AppCoordinator: LoginCoordinatorDelegate {
+    /// 로그인 성공 시 진입 경로에 따라 분기 (launch: 탭바 표시, profile: 이전 화면으로 복귀)
+    func loginDidComplete() {
+        switch loginContext {
+        case .launch:
+            showTabBar()
+        case .profile:
+            navigationController.popViewController(animated: true)
+        case .none:
+            break
+        }
+        loginContext = nil
     }
 }

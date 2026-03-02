@@ -5,6 +5,7 @@
 //  Created by Sangjin Lee
 //
 
+import Core
 
 public protocol UserRepository {
     /// GET /me — 유저  조회

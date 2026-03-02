@@ -1,6 +1,6 @@
 //
 //  Project.swift
-//  Authenticate
+//  Login
 //
 //  Created by Sangjin Lee
 //
@@ -9,23 +9,22 @@ import ProjectDescription
 import ProjectDescriptionHelpers
 
 let project = Project(
-    name: "Authenticate",
+    name: "Login",
     targets: Project.interfaceTargets(
-        name: "Authenticate",
+        name: "Login",
         dependencies: [
             .module(.core),
-            .module(.domain),
         ]
     ) + Project.implementTargets(
-        name: "Authenticate",
+        name: "Login",
         dependencies: [
             .module(.core),
             .module(.domain),
-            .module(.shared),
             .external(name: "Swinject"),
             .external(name: "ReactorKit"),
             .external(name: "RxSwift"),
             .external(name: "RxCocoa"),
+            .external(name: "GoogleSignIn"),
         ]
     )
 )

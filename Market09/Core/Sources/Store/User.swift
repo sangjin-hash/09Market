@@ -1,6 +1,6 @@
 //
 //  User.swift
-//  Domain
+//  Core
 //
 //  Created by Sangjin Lee
 //
@@ -10,7 +10,7 @@ public struct User {
     public let nickname: String?
     public let profileUrl: String?
     public let provider: String
-    
+
     public init(id: String, nickname: String?, profileUrl: String?, provider: String) {
         self.id = id
         self.nickname = nickname

@@ -20,6 +20,7 @@ let project = Project(
             infoPlist: .default,
             sources: ["Sources/**"],
             dependencies: [
+                .module(.core),
                 .external(name: "Swinject"),
             ]
         ),

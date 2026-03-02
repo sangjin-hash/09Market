@@ -17,18 +17,27 @@ final class TabBarCoordinator: Coordinator {
     var childCoordinators: [Coordinator] = []
     let navigationController: UINavigationController
     
+    
     // MARK: - Properties
     
     private let tabBarController: UITabBarController
     private let diContainer: AppDIContainer
+    private weak var profileDelegate: ProfileCoordinatorDelegate?
+    
     
     // MARK: - Init
     
-    init(navigationController: UINavigationController, diContainer: AppDIContainer) {
+    init(
+        navigationController: UINavigationController,
+        diContainer: AppDIContainer,
+        profileDelegate: ProfileCoordinatorDelegate
+    ) {
         self.navigationController = navigationController
         self.tabBarController = UITabBarController()
         self.diContainer = diContainer
+        self.profileDelegate = profileDelegate
     }
+    
     
     // MARK: - Start
     
@@ -48,10 +57,11 @@ final class TabBarCoordinator: Coordinator {
     }
 }
 
+
 // MARK: - Tab Setup
 
 private extension TabBarCoordinator {
-    
+    /// 홈 탭 설정
     func setupHomeTab(_ nav: UINavigationController) {
         nav.tabBarItem = UITabBarItem(title: Strings.Tab.home, image: UIImage(systemName: "house"), tag: 0)
         let coordinator = diContainer.resolve(HomeCoordinator.self, argument: nav)!
@@ -68,9 +78,11 @@ private extension TabBarCoordinator {
         nav.setViewControllers([placeholder], animated: false)
     }
 
+    /// 프로필 탭 설정 및 delegate 연결
     func setupProfileTab(_ nav: UINavigationController) {
         nav.tabBarItem = UITabBarItem(title: Strings.Tab.profile, image: UIImage(systemName: "person"), tag: 2)
         let coordinator = diContainer.resolve(ProfileCoordinator.self, argument: nav)!
+        coordinator.delegate = profileDelegate
         addChild(coordinator)
         coordinator.start()
     }

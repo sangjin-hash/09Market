@@ -1,15 +1,16 @@
 //
 //  LoginReactor.swift
-//  AuthenticateImpl
+//  LoginImpl
 //
 //  Created by Sangjin Lee
 //
 
+import Core
+import Domain
+import Shared
+
 import ReactorKit
 import RxSwift
-import Domain
-import Core
-import Shared
 
 final class LoginReactor: Reactor {
 
