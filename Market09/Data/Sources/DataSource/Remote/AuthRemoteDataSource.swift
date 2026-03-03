@@ -103,10 +103,7 @@ public final class AuthRemoteDataSourceImpl: AuthRemoteDataSource {
     }
 
     public func deleteAccount() async throws {
-        // TODO: Supabase Edge Function 또는 자체 API로 계정 삭제 구현
-//        try await performAuth {
-//            try await self.client.auth.signOut()
-//        }
+        // TODO: 서비스 출시 전 Supabase Edge Function 또는 자체 API로 계정 삭제 구현
     }
 }
 
