@@ -23,6 +23,8 @@ extension AppError {
         case retryable(message: String)
         /// 사용자 안내가 필요한 에러 (확인 버튼만)
         case userGuide(message: String)
+        /// 재인증 필요 (확인 버튼 → 로그인 화면 이동)
+        case requireLogin(message: String)
         /// 개발자 이슈 (assert)
         case developerError
         /// 로깅만 (UI 표시 없음)
@@ -54,10 +56,10 @@ extension AppError {
         case .unknown:
             return .silent
 
-        // UseCase 내부에서 처리되지만, 혹시 Feature까지 올라온 경우 재시도 처리
+        // 세션만료/인증실패 → 로그인 화면 이동
         case .auth(.sessionExpired),
              .auth(.invalidCredentials):
-            return .retryable(message: message)
+            return .requireLogin(message: message)
         }
     }
 }

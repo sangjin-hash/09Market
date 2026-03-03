@@ -13,7 +13,8 @@ public enum ErrorDialog {
     public static func show(
         on viewController: UIViewController,
         error: AppError,
-        retryAction: (() -> Void)? = nil
+        retryAction: (() -> Void)? = nil,
+        loginAction: (() -> Void)? = nil
     ) {
         switch error.handleStrategy {
         case .retryable(let message):
@@ -25,6 +26,9 @@ public enum ErrorDialog {
 
         case .userGuide(let message):
             showConfirmAlert(on: viewController, message: message)
+
+        case .requireLogin(let message):
+            showConfirmAlert(on: viewController, message: message, confirmAction: loginAction)
 
         case .developerError:
             assertionFailure("[Developer Error] \(error)")
@@ -52,10 +56,11 @@ private extension ErrorDialog {
 
     static func showConfirmAlert(
         on viewController: UIViewController,
-        message: String
+        message: String,
+        confirmAction: (() -> Void)? = nil
     ) {
         let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "확인", style: .default))
+        alert.addAction(UIAlertAction(title: "확인", style: .default) { _ in confirmAction?() })
         viewController.present(alert, animated: true)
     }
 }
