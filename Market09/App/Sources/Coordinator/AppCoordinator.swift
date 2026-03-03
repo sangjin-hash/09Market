@@ -25,6 +25,7 @@ final class AppCoordinator: Coordinator {
     private enum LoginContext {
         case launch
         case profile
+        case requireLogin
     }
 
     private let window: UIWindow
@@ -121,6 +122,14 @@ extension AppCoordinator: ProfileCoordinatorDelegate {
         showLogin()
     }
     
+    /// 세션만료/인증실패로 강제 재인증 필요 (back 버튼 X, 스와이프 X)
+    func profileDidRequireLogin() {
+        loginContext = .requireLogin
+        showLogin()
+        navigationController.topViewController?.navigationItem.hidesBackButton = true
+        navigationController.interactivePopGestureRecognizer?.isEnabled = false
+    }
+
     /// 프로필 탭에서 로그아웃 요청
     func profileDidRequestLogout() {
         
@@ -128,7 +137,7 @@ extension AppCoordinator: ProfileCoordinatorDelegate {
     
     /// 프로필 탭에서 회원 탈퇴 요청
     func profileDidRequestDeleteAccount() {
-        
+        // TODO: 추후 구현 예정
     }
 }
 
@@ -142,6 +151,9 @@ extension AppCoordinator: LoginCoordinatorDelegate {
         case .launch:
             showTabBar()
         case .profile:
+            navigationController.popViewController(animated: true)
+        case .requireLogin:
+            navigationController.interactivePopGestureRecognizer?.isEnabled = true
             navigationController.popViewController(animated: true)
         case .none:
             break
