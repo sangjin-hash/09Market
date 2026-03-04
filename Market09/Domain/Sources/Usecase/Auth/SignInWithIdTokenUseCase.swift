@@ -8,7 +8,7 @@
 import Core
 
 public protocol SignInWithIdTokenUseCase {
-    func execute(provider: String, idToken: String, nonce: String?) async throws -> AuthToken
+    func execute(provider: AuthProvider, idToken: String, nonce: String?) async throws -> AuthToken
 }
 
 public final class SignInWithIdTokenUseCaseImpl: SignInWithIdTokenUseCase {
@@ -27,7 +27,7 @@ public final class SignInWithIdTokenUseCaseImpl: SignInWithIdTokenUseCase {
         self.userStore = userStore
     }
 
-    public func execute(provider: String, idToken: String, nonce: String?) async throws -> AuthToken {
+    public func execute(provider: AuthProvider, idToken: String, nonce: String?) async throws -> AuthToken {
         let token = try await authRepository.signInWithIdToken(
             provider: provider,
             idToken: idToken,

@@ -50,7 +50,7 @@ extension LoginReactor {
                 .just(.setLoading(true)),
                 Observable.task {
                     try await self.signInWithIdTokenUseCase.execute(
-                        provider: "google",
+                        provider: .google,
                         idToken: idToken,
                         nonce: nil
                     )
@@ -73,7 +73,7 @@ extension LoginReactor {
                 .just(.setLoading(true)),
                 Observable.task {
                     try await self.signInWithIdTokenUseCase.execute(
-                        provider: "apple",
+                        provider: .apple,
                         idToken: idToken,
                         nonce: nonce
                     )

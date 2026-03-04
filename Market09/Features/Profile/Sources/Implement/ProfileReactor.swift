@@ -75,9 +75,12 @@ extension ProfileReactor {
             return .just(.setLoginRequired)
 
         case .logoutButtonTapped:
+            guard let provider = userStore.currentUser.value?.provider else {
+                return .just(.setError(AppError.auth(.providerFailed)))
+            }
             return Observable.concat([
                 .just(.setLoading(true)),
-                Observable.task { try await self.signOutUseCase.execute() }
+                Observable.task { try await self.signOutUseCase.execute(provider: provider) }
                     .map { _ in Mutation.setUser(nil) }
                     .catch { .just(.setError($0 as? AppError)) },
                 .just(.setLoading(false))

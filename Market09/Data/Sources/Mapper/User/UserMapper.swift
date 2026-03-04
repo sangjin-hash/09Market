@@ -13,7 +13,7 @@ enum UserMapper {
             id: response.id,
             nickname: response.nickname,
             profileUrl: response.profileUrl,
-            provider: response.provider
+            provider: AuthProvider(rawValue: response.provider) ?? .google
         )
     }
 }

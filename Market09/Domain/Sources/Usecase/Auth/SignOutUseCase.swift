@@ -6,7 +6,7 @@
 //
 
 public protocol SignOutUseCase {
-    func execute() async throws
+    func execute(provider: AuthProvider) async throws
 }
 
 import Core
@@ -21,8 +21,8 @@ public final class SignOutUseCaseImpl: SignOutUseCase {
         self.userStore = userStore
     }
 
-    public func execute() async throws {
-        try await authRepository.signOut()
+    public func execute(provider: AuthProvider) async throws {
+        try await authRepository.signOut(provider: provider)
         userStore.clear()
     }
 }
