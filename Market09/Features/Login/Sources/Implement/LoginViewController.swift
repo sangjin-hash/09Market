@@ -89,7 +89,20 @@ extension LoginViewController: View {
         
 
         // MARK: - State
-        
+
+        reactor.state.map(\.isLoading)
+            .distinctUntilChanged()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] isLoading in
+                guard let self else { return }
+                if isLoading {
+                    LoadingIndicator.show(on: self.view, blockInteraction: true)
+                } else {
+                    LoadingIndicator.hide(from: self.view)
+                }
+            })
+            .disposed(by: disposeBag)
+
         reactor.pulse(\.$error)
             .compactMap { $0 }
             .observe(on: MainScheduler.instance)

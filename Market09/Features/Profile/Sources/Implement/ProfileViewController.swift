@@ -86,8 +86,16 @@ extension ProfileViewController: View {
             .disposed(by: disposeBag)
 
         logoutButton.rx.tap
-            .map { Reactor.Action.logoutButtonTapped }
-            .bind(to: reactor.action)
+            .subscribe(onNext: { [weak self] in
+                guard let self else { return }
+                ConfirmDialog.show(
+                    on: self,
+                    message: Strings.Profile.logoutConfirm,
+                    confirmAction: { [weak self] in
+                        self?.reactor?.action.onNext(.logoutButtonTapped)
+                    }
+                )
+            })
             .disposed(by: disposeBag)
 
         deleteAccountButton.rx.tap
@@ -97,7 +105,20 @@ extension ProfileViewController: View {
 
         
         // MARK: - State
-        
+
+        reactor.state.map(\.isLoading)
+            .distinctUntilChanged()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] isLoading in
+                guard let self else { return }
+                if isLoading {
+                    LoadingIndicator.show(on: self.view, blockInteraction: true)
+                } else {
+                    LoadingIndicator.hide(from: self.view)
+                }
+            })
+            .disposed(by: disposeBag)
+
         reactor.state.map(\.isLoggedIn)
             .distinctUntilChanged()
             .observe(on: MainScheduler.instance)
