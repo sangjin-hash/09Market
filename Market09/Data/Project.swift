@@ -23,9 +23,10 @@ let project = Project(
                 .module(.domain),
                 .module(.core),
                 .external(name: "Alamofire"),
+                .external(name: "GoogleSignIn"),
                 .external(name: "Kingfisher"),
-                .external(name: "Swinject"),
                 .external(name: "Supabase"),
+                .external(name: "Swinject"),
             ]
         ),
         .target(

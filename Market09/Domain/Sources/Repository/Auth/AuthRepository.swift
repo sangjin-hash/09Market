@@ -5,6 +5,8 @@
 //  Created by Sangjin Lee
 //
 
+import Core
+
 public protocol AuthRepository {
 
     // MARK: - SignIn
@@ -19,7 +21,7 @@ public protocol AuthRepository {
     ///   - idToken: 소셜 로그인 제공자로부터 발급받은 ID 토큰
     ///   - nonce: CSRF 방지를 위한 임의 문자열 (Apple 로그인 시 필수)
     /// - Returns: 발급된 인증 토큰
-    func signInWithIdToken(provider: String, idToken: String, nonce: String?) async throws -> AuthToken
+    func signInWithIdToken(provider: AuthProvider, idToken: String, nonce: String?) async throws -> AuthToken
     
     // MARK: - Token
 
@@ -37,7 +39,7 @@ public protocol AuthRepository {
     // MARK: - SignOut & Delete Account
 
     /// 현재 세션을 종료하고 Keychain의 토큰을 삭제
-    func signOut() async throws
+    func signOut(provider: AuthProvider) async throws
 
     /// 계정을 삭제하고 Keychain의 토큰을 삭제
     func deleteAccount() async throws

@@ -21,6 +21,7 @@ public final class DeleteAccountUseCaseImpl: DeleteAccountUseCase {
         self.userStore = userStore
     }
 
+    // TODO: deleteAccount API 미구현 상태 — 현재 빈 호출 후 userStore만 clear됨
     public func execute() async throws {
         try await authRepository.deleteAccount()
         userStore.clear()

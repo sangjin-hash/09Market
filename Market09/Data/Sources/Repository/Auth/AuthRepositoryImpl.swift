@@ -31,7 +31,7 @@ public final class AuthRepositoryImpl: AuthRepository {
     }
 
     public func signInWithIdToken(
-        provider: String,
+        provider: AuthProvider,
         idToken: String,
         nonce: String?
     ) async throws -> AuthToken {
@@ -71,8 +71,8 @@ public final class AuthRepositoryImpl: AuthRepository {
 
     // MARK: - SignOut & Delete Account
 
-    public func signOut() async throws {
-        try await remoteDataSource.signOut()
+    public func signOut(provider: AuthProvider) async throws {
+        try await remoteDataSource.signOut(provider: provider)
         try localDataSource.clearTokens()
     }
 

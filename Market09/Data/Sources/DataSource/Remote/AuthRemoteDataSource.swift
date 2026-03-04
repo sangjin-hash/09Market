@@ -7,6 +7,7 @@
 
 import Foundation
 import Auth
+import GoogleSignIn
 import Supabase
 import Core
 
@@ -21,7 +22,7 @@ public protocol AuthRemoteDataSource {
     ///   - idToken: 소셜 로그인 제공자로부터 발급받은 ID 토큰
     ///   - nonce: CSRF 방지를 위한 임의 문자열 (Apple 로그인 시 필수)
     /// - Returns: 발급된 access/refresh 토큰
-    func signInWithIdToken(provider: String, idToken: String, nonce: String?) async throws -> AuthTokenResponse
+    func signInWithIdToken(provider: AuthProvider, idToken: String, nonce: String?) async throws -> AuthTokenResponse
 
     /// refreshToken으로 만료된 세션을 갱신
     /// - Parameter refreshToken: 세션 갱신에 사용할 리프레시 토큰
@@ -29,7 +30,7 @@ public protocol AuthRemoteDataSource {
     func refreshToken(_ refreshToken: String) async throws -> AuthTokenResponse
 
     /// 현재 세션을 종료하고 로그아웃
-    func signOut() async throws
+    func signOut(provider: AuthProvider) async throws
 
     /// 계정을 삭제하고 로그아웃 처리
     func deleteAccount() async throws
@@ -58,11 +59,11 @@ public final class AuthRemoteDataSourceImpl: AuthRemoteDataSource {
     }
     
     public func signInWithIdToken(
-        provider: String,
+        provider: AuthProvider,
         idToken: String,
         nonce: String?
     ) async throws -> AuthTokenResponse {
-        guard let oidcProvider = OpenIDConnectCredentials.Provider(rawValue: provider) else {
+        guard let oidcProvider = OpenIDConnectCredentials.Provider(rawValue: provider.rawValue) else {
             throw AppError.auth(.providerFailed)
         }
 
@@ -96,17 +97,23 @@ public final class AuthRemoteDataSourceImpl: AuthRemoteDataSource {
         )
     }
 
-    public func signOut() async throws {
+    public func signOut(provider: AuthProvider) async throws {
+        switch provider {
+        case .google:
+            GIDSignIn.sharedInstance.signOut()
+            
+        case .apple:
+            // TODO: 추후 애플로그인 연동 시 작업
+            break
+        }
+        
         try await performAuth {
             try await self.client.auth.signOut()
         }
     }
 
     public func deleteAccount() async throws {
-        // TODO: Supabase Edge Function 또는 자체 API로 계정 삭제 구현
-//        try await performAuth {
-//            try await self.client.auth.signOut()
-//        }
+        // TODO: 서비스 출시 전 Supabase Edge Function 또는 자체 API로 계정 삭제 구현
     }
 }
 

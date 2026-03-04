@@ -61,7 +61,7 @@ public final class AuthLocalDataSourceImpl: AuthLocalDataSource {
               let refreshToken = String(data: refreshData, encoding: .utf8) else {
             return nil
         }
-        
+
         return AuthToken(accessToken: accessToken, refreshToken: refreshToken)
     }
 

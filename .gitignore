@@ -46,7 +46,13 @@ graph.dot
 .claude/
 
 ### bkit docs
-docs/
+docs/.pdca-snapshots
+docs/01-plan
+docs/02-design
+docs/03-analysis
+docs/.bkit-memory.json
+docs/.pdca-status.json
+Market09/docs
 
 ### Screts.xcconfig
 *.xcconfig

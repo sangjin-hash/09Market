@@ -5,11 +5,12 @@
 //  Created by Sangjin Lee
 //
 
-import UIKit
-import ReactorKit
-import RxSwift
-import RxCocoa
 import Core
+import UIKit
+
+import ReactorKit
+import RxCocoa
+import RxSwift
 
 final class ProfileViewController: UIViewController {
     
@@ -24,9 +25,18 @@ final class ProfileViewController: UIViewController {
         return button
     }()
     
-    private let statusLabel: UILabel = {
+    private let nicknameLabel: UILabel = {
         let label = UILabel()
-        label.text = Strings.Profile.loginStatus
+        label.font = .systemFont(ofSize: 20, weight: .bold)
+        label.textAlignment = .center
+        label.isHidden = true
+        return label
+    }()
+
+    private let providerLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 14)
+        label.textColor = .secondaryLabel
         label.textAlignment = .center
         label.isHidden = true
         return label
@@ -47,6 +57,7 @@ final class ProfileViewController: UIViewController {
         return button
     }()
     
+    
     // MARK: - Lifecycle
     
     override func viewDidLoad() {
@@ -66,15 +77,25 @@ extension ProfileViewController: View {
     // MARK: - Bind
 
     func bind(reactor: ProfileReactor) {
-        // Action
+        
+        // MARK: - Action
+        
         loginButton.rx.tap
             .map { Reactor.Action.loginButtonTapped }
             .bind(to: reactor.action)
             .disposed(by: disposeBag)
 
         logoutButton.rx.tap
-            .map { Reactor.Action.logoutButtonTapped }
-            .bind(to: reactor.action)
+            .subscribe(onNext: { [weak self] in
+                guard let self else { return }
+                ConfirmDialog.show(
+                    on: self,
+                    message: Strings.Profile.logoutConfirm,
+                    confirmAction: { [weak self] in
+                        self?.reactor?.action.onNext(.logoutButtonTapped)
+                    }
+                )
+            })
             .disposed(by: disposeBag)
 
         deleteAccountButton.rx.tap
@@ -82,15 +103,55 @@ extension ProfileViewController: View {
             .bind(to: reactor.action)
             .disposed(by: disposeBag)
 
-        // State
+        
+        // MARK: - State
+
+        reactor.state.map(\.isLoading)
+            .distinctUntilChanged()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] isLoading in
+                guard let self else { return }
+                if isLoading {
+                    LoadingIndicator.show(on: self.view, blockInteraction: true)
+                } else {
+                    LoadingIndicator.hide(from: self.view)
+                }
+            })
+            .disposed(by: disposeBag)
+
         reactor.state.map(\.isLoggedIn)
             .distinctUntilChanged()
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] isLoggedIn in
                 self?.loginButton.isHidden = isLoggedIn
-                self?.statusLabel.isHidden = !isLoggedIn
+                self?.nicknameLabel.isHidden = !isLoggedIn
+                self?.providerLabel.isHidden = !isLoggedIn
                 self?.logoutButton.isHidden = !isLoggedIn
                 self?.deleteAccountButton.isHidden = !isLoggedIn
+            })
+            .disposed(by: disposeBag)
+
+        reactor.state.map(\.user)
+            .distinctUntilChanged { $0?.id == $1?.id }
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] user in
+                self?.nicknameLabel.text = user?.nickname ?? "사용자"
+                self?.providerLabel.text = user?.provider.rawValue
+            })
+            .disposed(by: disposeBag)
+
+        reactor.pulse(\.$error)
+            .compactMap { $0 }
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] error in
+                guard let self else { return }
+                ErrorDialog.show(
+                    on: self,
+                    error: error,
+                    loginAction: { [weak self] in
+                        self?.reactor?.action.onNext(.loginRequired)
+                    }
+                )
             })
             .disposed(by: disposeBag)
     }
@@ -102,7 +163,7 @@ extension ProfileViewController {
 
     private func setupLayout() {
         let stackView = UIStackView(arrangedSubviews: [
-            statusLabel, loginButton, logoutButton, deleteAccountButton
+            nicknameLabel, providerLabel, loginButton, logoutButton, deleteAccountButton
         ])
         stackView.axis = .vertical
         stackView.spacing = 16

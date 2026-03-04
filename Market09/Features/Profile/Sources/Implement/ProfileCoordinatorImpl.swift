@@ -52,6 +52,14 @@ final class ProfileCoordinatorImpl: ProfileCoordinator {
                 self?.delegate?.profileDidRequestLogin()
             })
             .disposed(by: disposeBag)
+
+        reactor.pulse(\.$loginRequired)
+            .compactMap { $0 }
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] _ in
+                self?.delegate?.profileDidRequireLogin()
+            })
+            .disposed(by: disposeBag)
         navigationController.setViewControllers([viewController], animated: false)
     }
 }
