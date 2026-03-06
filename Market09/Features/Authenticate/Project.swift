@@ -23,7 +23,7 @@ let project = Project(
             .module(.domain),
             .module(.util),
             .module(.sharedReactiveX),
-            .external(name: "Swinject"),
+            .module(.sharedDI),
         ]
     )
 )

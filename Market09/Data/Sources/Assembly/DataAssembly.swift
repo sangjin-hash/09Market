@@ -5,24 +5,25 @@
 //  Created by Sangjin Lee
 //
 
-import Foundation
-import Swinject
 import Domain
+import Foundation
+import Shared_DI
 
 public final class DataAssembly: Assembly {
 
     public init() {}
 
     public func assemble(container: Container) {
-        
+
         // MARK: - KeychainClient
-        
+
         container.register(KeychainClient.self) { _ in
             KeychainClientImpl()
         }.inObjectScope(.container)
         
+
         // MARK: - Auth
-        
+
         container.register(AuthRemoteDataSource.self) { _ in
             guard let urlString = Bundle.main.infoDictionary?["SUPABASE_URL"] as? String,
                   let url = URL(string: urlString),
@@ -31,49 +32,45 @@ public final class DataAssembly: Assembly {
             }
             return AuthRemoteDataSourceImpl(supabaseURL: url, supabaseKey: key)
         }.inObjectScope(.container)
-        
-        container.register(AuthLocalDataSource.self) { resolver in
-            AuthLocalDataSourceImpl(
-                keychainClient: resolver.resolve(KeychainClient.self)!
-            )
+
+        container.register(AuthLocalDataSource.self) { r in
+            AuthLocalDataSourceImpl(keychainClient: r.resolve())
         }.inObjectScope(.container)
 
-        container.register(AuthRepository.self) { resolver in
+        container.register(AuthRepository.self) { r in
             AuthRepositoryImpl(
-                remoteDataSource: resolver.resolve(AuthRemoteDataSource.self)!,
-                localDataSource: resolver.resolve(AuthLocalDataSource.self)!
+                remoteDataSource: r.resolve(),
+                localDataSource: r.resolve()
             )
         }.inObjectScope(.container)
         
+
         // MARK: - APIClient
-        
-        container.register(Interceptor.self) { resolver in
+
+        container.register(Interceptor.self) { r in
             Interceptor(
-                localDataSource: resolver.resolve(AuthLocalDataSource.self)!,
-                remoteDataSource: resolver.resolve(AuthRemoteDataSource.self)!,
+                localDataSource: r.resolve(),
+                remoteDataSource: r.resolve(),
                 apiKey: Bundle.main.infoDictionary?["SUPABASE_ANON_KEY"] as! String
             )
         }.inObjectScope(.container)
-        
-        container.register(APIClient.self) { resolver in
+
+        container.register(APIClient.self) { r in
             APIClientImpl(
                 baseURL: Bundle.main.infoDictionary?["SUPABASE_URL"] as! String,
-                interceptor: resolver.resolve(Interceptor.self)!
+                interceptor: r.resolve()
             )
         }.inObjectScope(.container)
 
+        
         // MARK: - User
 
-        container.register(UserRemoteDataSource.self) { resolver in
-            UserRemoteDataSourceImpl(
-                apiClient: resolver.resolve(APIClient.self)!
-            )
+        container.register(UserRemoteDataSource.self) { r in
+            UserRemoteDataSourceImpl(apiClient: r.resolve())
         }.inObjectScope(.container)
 
-        container.register(UserRepository.self) { resolver in
-            UserRepositoryImpl(
-                remoteDataSource: resolver.resolve(UserRemoteDataSource.self)!
-            )
+        container.register(UserRepository.self) { r in
+            UserRepositoryImpl(remoteDataSource: r.resolve())
         }.inObjectScope(.container)
     }
 }

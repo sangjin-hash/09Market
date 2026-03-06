@@ -7,7 +7,7 @@
 
 import Core
 import Domain
-import Swinject
+import Shared_DI
 
 public final class DomainAssembly: Assembly {
 
@@ -20,46 +20,44 @@ public final class DomainAssembly: Assembly {
         container.register(UserStore.self) { _ in
             UserStore()
         }.inObjectScope(.container)
-        
+
 
         // MARK: - Auth
 
-        container.register(SignInWithIdTokenUseCase.self) { resolver in
+        container.register(SignInWithIdTokenUseCase.self) { r in
             SignInWithIdTokenUseCaseImpl(
-                authRepository: resolver.resolve(AuthRepository.self)!,
-                userRepository: resolver.resolve(UserRepository.self)!,
-                userStore: resolver.resolve(UserStore.self)!
+                authRepository: r.resolve(),
+                userRepository: r.resolve(),
+                userStore: r.resolve()
             )
         }.inObjectScope(.container)
 
-        container.register(SignOutUseCase.self) { resolver in
+        container.register(SignOutUseCase.self) { r in
             SignOutUseCaseImpl(
-                authRepository: resolver.resolve(AuthRepository.self)!,
-                userStore: resolver.resolve(UserStore.self)!
+                authRepository: r.resolve(),
+                userStore: r.resolve()
             )
         }.inObjectScope(.container)
 
-        container.register(DeleteAccountUseCase.self) { resolver in
+        container.register(DeleteAccountUseCase.self) { r in
             DeleteAccountUseCaseImpl(
-                authRepository: resolver.resolve(AuthRepository.self)!,
-                userStore: resolver.resolve(UserStore.self)!
+                authRepository: r.resolve(),
+                userStore: r.resolve()
             )
         }.inObjectScope(.container)
-        
+
 
         // MARK: - User
 
-        container.register(GetMeUseCase.self) { resolver in
-            GetMeUseCaseImpl(
-                userRepository: resolver.resolve(UserRepository.self)!
-            )
+        container.register(GetMeUseCase.self) { r in
+            GetMeUseCaseImpl(userRepository: r.resolve())
         }.inObjectScope(.container)
 
-        container.register(CheckAuthOnLaunchUseCase.self) { resolver in
+        container.register(CheckAuthOnLaunchUseCase.self) { r in
             CheckAuthOnLaunchUseCaseImpl(
-                authRepository: resolver.resolve(AuthRepository.self)!,
-                userRepository: resolver.resolve(UserRepository.self)!,
-                userStore: resolver.resolve(UserStore.self)!
+                authRepository: r.resolve(),
+                userRepository: r.resolve(),
+                userStore: r.resolve()
             )
         }.inObjectScope(.container)
     }

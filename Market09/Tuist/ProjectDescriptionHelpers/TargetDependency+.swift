@@ -47,6 +47,7 @@ public enum Module: String {
     case core = "Core"
     case data = "Data"
     case sharedReactiveX = "Shared_ReactiveX"
+    case sharedDI = "Shared_DI"
     case util = "Util"
     case designSystem = "DesignSystem"
 

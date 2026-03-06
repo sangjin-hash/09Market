@@ -5,10 +5,10 @@
 //  Created by Sangjin Lee
 //
 
-import UIKit
-import Swinject
 import Core
 import Home
+import Shared_DI
+import UIKit
 
 public final class HomeAssembly: Assembly {
 

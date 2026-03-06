@@ -26,7 +26,7 @@ let project = Project(
                 .external(name: "GoogleSignIn"),
                 .external(name: "Kingfisher"),
                 .external(name: "Supabase"),
-                .external(name: "Swinject"),
+                .module(.sharedDI),
             ]
         ),
         .target(

@@ -8,25 +8,22 @@
 import Core
 import Domain
 import Login
+import Shared_DI
 import UIKit
 
-import Swinject
-
 public final class LoginAssembly: Assembly {
-    
+
     public init() {}
-    
+
     public func assemble(container: Container) {
-        container.register(LoginReactor.self) { resolver in
-            LoginReactor(
-                signInWithIdTokenUseCase: resolver.resolve(SignInWithIdTokenUseCase.self)!
-            )
+        container.register(LoginReactor.self) { r in
+            LoginReactor(signInWithIdTokenUseCase: r.resolve())
         }
-        
-        container.register(LoginCoordinator.self) { (resolver, navigation: UINavigationController) in
+
+        container.register(LoginCoordinator.self) { (r, navigation: UINavigationController) in
             LoginCoordinatorImpl(
                 navigationController: navigation,
-                loginReactor: resolver.resolve(LoginReactor.self)!
+                loginReactor: r.resolve()
             )
         }
     }

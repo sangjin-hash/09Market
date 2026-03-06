@@ -5,29 +5,29 @@
 //  Created by Sangjin Lee
 //
 
-import UIKit
-import Swinject
 import Core
 import Domain
 import Profile
+import Shared_DI
+import UIKit
 
 public final class ProfileAssembly: Assembly {
-    
+
     public init() {}
-    
+
     public func assemble(container: Container) {
-        container.register(ProfileReactor.self) { resolver in
+        container.register(ProfileReactor.self) { r in
             ProfileReactor(
-                signOutUseCase: resolver.resolve(SignOutUseCase.self)!,
-                deleteAccountUseCase: resolver.resolve(DeleteAccountUseCase.self)!,
-                userStore: resolver.resolve(UserStore.self)!
+                signOutUseCase: r.resolve(),
+                deleteAccountUseCase: r.resolve(),
+                userStore: r.resolve()
             )
         }
-        
-        container.register(ProfileCoordinator.self) { (resolver, navigationController: UINavigationController) in
+
+        container.register(ProfileCoordinator.self) { (r, navigationController: UINavigationController) in
             ProfileCoordinatorImpl(
                 navigationController: navigationController,
-                reactor: resolver.resolve(ProfileReactor.self)!
+                reactor: r.resolve()
             )
         }
     }

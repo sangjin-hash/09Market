@@ -23,7 +23,7 @@ let project = Project(
             .module(.util),
             .module(.designSystem),
             .module(.sharedReactiveX),
-            .external(name: "Swinject"),
+            .module(.sharedDI),
             .external(name: "GoogleSignIn"),
         ]
     )

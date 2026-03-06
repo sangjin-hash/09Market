@@ -10,6 +10,7 @@ import Core
 import Domain
 import Login
 import Profile
+import Shared_DI
 import UIKit
 
 final class AppCoordinator: Coordinator {
@@ -57,10 +58,7 @@ final class AppCoordinator: Coordinator {
 private extension AppCoordinator {
     /// 앱 실행 시 인증/인가 작업 처리
     func startAuth() {
-        let authCoordinator = diContainer.resolve(
-            AuthCoordinator.self,
-            argument: navigationController
-        )!
+        let authCoordinator: AuthCoordinator = diContainer.resolver.resolve(argument: navigationController)
         
         authCoordinator.delegate = self
         addChild(authCoordinator)
@@ -81,10 +79,7 @@ private extension AppCoordinator {
 
     /// 로그인 화면으로 이동
     func showLogin() {
-        let loginCoordinator = diContainer.resolve(
-            LoginCoordinator.self,
-            argument: navigationController
-        )!
+        let loginCoordinator: LoginCoordinator = diContainer.resolver.resolve(argument: navigationController)
 
         loginCoordinator.delegate = self
         addChild(loginCoordinator)
