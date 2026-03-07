@@ -8,6 +8,16 @@
 import Foundation
 import Core
 
+enum Constants {
+    static let bundleId = "com.ios.market09"
+
+    enum KeychainKey {
+        static let accessToken = "market09.accessToken"
+        static let refreshToken = "market09.refreshToken"
+        static let isAnonymous = "market09.isAnonymous"
+    }
+}
+
 public protocol KeychainClient {
     func save(key: String, data: Data) throws
     func load(key: String) -> Data?
@@ -17,11 +27,9 @@ public protocol KeychainClient {
 
 public final class KeychainClientImpl: KeychainClient {
     
-    private let service: String
-    
-    public init(service: String = Constants.bundleId) {
-        self.service = service
-    }
+    private let service = Constants.bundleId
+
+    public init() {}
     
     public func save(key: String, data: Data) throws {
         try? delete(key: key)

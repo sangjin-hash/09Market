@@ -5,7 +5,7 @@
 //  Created by Sangjin Lee
 //
 
-import RxRelay
+import Shared_ReactiveX
 
 public final class UserStore {
     public let currentUser = BehaviorRelay<User?>(value: nil)

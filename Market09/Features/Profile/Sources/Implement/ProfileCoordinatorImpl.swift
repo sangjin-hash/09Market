@@ -7,10 +7,8 @@
 
 import Core
 import Profile
+import Shared_ReactiveX
 import UIKit
-
-import RxCocoa
-import RxSwift
 
 final class ProfileCoordinatorImpl: ProfileCoordinator {
     

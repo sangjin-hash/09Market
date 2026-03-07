@@ -6,11 +6,10 @@
 //
 
 import Core
+import DesignSystem
+import Shared_ReactiveX
 import UIKit
-
-import ReactorKit
-import RxCocoa
-import RxSwift
+import Util
 
 final class ProfileViewController: UIViewController {
     

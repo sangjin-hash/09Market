@@ -67,8 +67,11 @@ let project = Project(
             ],
             dependencies: [
                 .module(.domain),
+                .module(.domainImpl),
                 .module(.core),
                 .module(.data),
+                .module(.util),
+                .module(.designSystem),
                 .feature(.home, type: .interface),
                 .feature(.home, type: .implement),
                 .feature(.auth, type: .interface),
@@ -77,7 +80,7 @@ let project = Project(
                 .feature(.profile, type: .implement),
                 .feature(.login, type: .interface),
                 .feature(.login, type: .implement),
-                .external(name: "Swinject"),
+                .module(.sharedDI),
             ],
             settings: .settings(
                 base: [

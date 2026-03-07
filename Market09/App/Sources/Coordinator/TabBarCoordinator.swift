@@ -5,10 +5,12 @@
 //  Created by Sangjin Lee
 //
 
-import UIKit
 import Core
 import Home
 import Profile
+import Shared_DI
+import UIKit
+import Util
 
 final class TabBarCoordinator: Coordinator {
     
@@ -64,7 +66,7 @@ private extension TabBarCoordinator {
     /// 홈 탭 설정
     func setupHomeTab(_ nav: UINavigationController) {
         nav.tabBarItem = UITabBarItem(title: Strings.Tab.home, image: UIImage(systemName: "house"), tag: 0)
-        let coordinator = diContainer.resolve(HomeCoordinator.self, argument: nav)!
+        let coordinator: HomeCoordinator = diContainer.resolver.resolve(argument: nav)
         addChild(coordinator)
         coordinator.start()
     }
@@ -81,7 +83,7 @@ private extension TabBarCoordinator {
     /// 프로필 탭 설정 및 delegate 연결
     func setupProfileTab(_ nav: UINavigationController) {
         nav.tabBarItem = UITabBarItem(title: Strings.Tab.profile, image: UIImage(systemName: "person"), tag: 2)
-        let coordinator = diContainer.resolve(ProfileCoordinator.self, argument: nav)!
+        let coordinator: ProfileCoordinator = diContainer.resolver.resolve(argument: nav)
         coordinator.delegate = profileDelegate
         addChild(coordinator)
         coordinator.start()

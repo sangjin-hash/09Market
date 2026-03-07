@@ -21,6 +21,7 @@ let package = Package(
         .package(url: "https://github.com/supabase/supabase-swift", from: "2.0.0"),
         .package(url: "https://github.com/ReactorKit/ReactorKit", from: "3.2.0"),
         .package(url: "https://github.com/ReactiveX/RxSwift", from: "6.0.0"),
+        .package(url: "https://github.com/RxSwiftCommunity/RxDataSources", from: "5.0.0"),
         .package(url: "https://github.com/google/GoogleSignIn-iOS", from: "8.0.0"),
     ]
 )

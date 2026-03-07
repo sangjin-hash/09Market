@@ -7,10 +7,7 @@
 
 import Core
 import Domain
-import Shared
-
-import ReactorKit
-import RxSwift
+import Shared_ReactiveX
 
 final class LoginReactor: Reactor {
 

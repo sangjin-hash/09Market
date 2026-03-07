@@ -7,10 +7,8 @@
 
 import Core
 import Login
+import Shared_ReactiveX
 import UIKit
-
-import RxCocoa
-import RxSwift
 
 final class LoginCoordinatorImpl: LoginCoordinator {
     

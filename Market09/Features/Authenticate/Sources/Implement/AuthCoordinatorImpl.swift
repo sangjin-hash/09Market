@@ -7,10 +7,8 @@
 
 import Authenticate
 import Core
+import Shared_ReactiveX
 import UIKit
-
-import RxCocoa
-import RxSwift
 
 final class AuthCoordinatorImpl: AuthCoordinator {
     

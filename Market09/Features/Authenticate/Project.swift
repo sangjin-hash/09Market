@@ -21,11 +21,9 @@ let project = Project(
         dependencies: [
             .module(.core),
             .module(.domain),
-            .module(.shared),
-            .external(name: "Swinject"),
-            .external(name: "ReactorKit"),
-            .external(name: "RxSwift"),
-            .external(name: "RxCocoa"),
+            .module(.util),
+            .module(.sharedReactiveX),
+            .module(.sharedDI),
         ]
     )
 )

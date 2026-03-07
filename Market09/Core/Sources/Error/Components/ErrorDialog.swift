@@ -1,0 +1,67 @@
+//
+//  ErrorDialog.swift
+//  Core
+//
+//  Created by Sangjin Lee
+//
+
+import UIKit
+import Util
+
+public enum ErrorDialog {
+
+    /// AppError의 handleStrategy에 따라 적절한 다이얼로그를 표시
+    public static func show(
+        on viewController: UIViewController,
+        error: AppError,
+        retryAction: (() -> Void)? = nil,
+        loginAction: (() -> Void)? = nil
+    ) {
+        switch error.handleStrategy {
+        case .retryable(let message):
+            if let retryAction {
+                showRetryAlert(on: viewController, message: message, retryAction: retryAction)
+            } else {
+                showConfirmAlert(on: viewController, message: message)
+            }
+
+        case .userGuide(let message):
+            showConfirmAlert(on: viewController, message: message)
+
+        case .requireLogin(let message):
+            showConfirmAlert(on: viewController, message: message, confirmAction: loginAction)
+
+        case .developerError:
+            assertionFailure("[Developer Error] \(error)")
+
+        case .silent:
+            print("[AppError] \(error.message)")
+        }
+    }
+}
+
+// MARK: - Private
+
+private extension ErrorDialog {
+
+    static func showRetryAlert(
+        on viewController: UIViewController,
+        message: String,
+        retryAction: @escaping () -> Void
+    ) {
+        let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: Strings.Common.cancel, style: .cancel))
+        alert.addAction(UIAlertAction(title: Strings.Common.retry, style: .default) { _ in retryAction() })
+        viewController.present(alert, animated: true)
+    }
+
+    static func showConfirmAlert(
+        on viewController: UIViewController,
+        message: String,
+        confirmAction: (() -> Void)? = nil
+    ) {
+        let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: Strings.Common.confirm, style: .default) { _ in confirmAction?() })
+        viewController.present(alert, animated: true)
+    }
+}

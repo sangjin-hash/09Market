@@ -20,10 +20,10 @@ let project = Project(
         dependencies: [
             .module(.core),
             .module(.domain),
-            .external(name: "Swinject"),
-            .external(name: "ReactorKit"),
-            .external(name: "RxSwift"),
-            .external(name: "RxCocoa"),
+            .module(.util),
+            .module(.designSystem),
+            .module(.sharedReactiveX),
+            .module(.sharedDI),
             .external(name: "GoogleSignIn"),
         ]
     )

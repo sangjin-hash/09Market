@@ -5,26 +5,23 @@
 //  Created by Sangjin Lee
 //
 
+import AuthenticateImpl
 import Data
 import Domain
-import AuthenticateImpl
+import DomainImpl
 import HomeImpl
 import LoginImpl
 import ProfileImpl
-
-import Swinject
+import Shared_DI
 
 final class AppDIContainer {
+    
     static let shared = AppDIContainer()
 
     private let assembler: Assembler
 
     var resolver: Resolver {
         assembler.resolver
-    }
-
-    func resolve<T, Arg>(_ type: T.Type, argument: Arg) -> T? {
-        assembler.resolver.resolve(type, argument: argument)
     }
 
     private init() {

@@ -5,11 +5,9 @@
 //  Created by Sangjin Lee
 //
 
-import ReactorKit
-import RxSwift
-import Domain
 import Core
-import Shared
+import Domain
+import Shared_ReactiveX
 
 final class ProfileReactor: Reactor {
     
