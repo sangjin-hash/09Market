@@ -6,6 +6,7 @@
 //
 
 import Foundation
+
 import Core
 import Domain
 
@@ -33,7 +34,6 @@ public protocol AuthLocalDataSource {
 }
 
 public final class AuthLocalDataSourceImpl: AuthLocalDataSource {
-
     private let keychainClient: KeychainClient
 
     public init(keychainClient: KeychainClient) {
@@ -47,16 +47,16 @@ public final class AuthLocalDataSourceImpl: AuthLocalDataSource {
         }
 
         do {
-            try keychainClient.save(key: Constants.KeychainKey.accessToken, data: accessData)
-            try keychainClient.save(key: Constants.KeychainKey.refreshToken, data: refreshData)
+            try self.keychainClient.save(key: Constants.KeychainKey.accessToken, data: accessData)
+            try self.keychainClient.save(key: Constants.KeychainKey.refreshToken, data: refreshData)
         } catch let error as KeychainError {
             throw KeychainErrorMapper.map(error)
         }
     }
 
     public func loadToken() -> AuthToken? {
-        guard let accessData = keychainClient.load(key: Constants.KeychainKey.accessToken),
-              let refreshData = keychainClient.load(key: Constants.KeychainKey.refreshToken),
+        guard let accessData = self.keychainClient.load(key: Constants.KeychainKey.accessToken),
+              let refreshData = self.keychainClient.load(key: Constants.KeychainKey.refreshToken),
               let accessToken = String(data: accessData, encoding: .utf8),
               let refreshToken = String(data: refreshData, encoding: .utf8) else {
             return nil
@@ -67,7 +67,7 @@ public final class AuthLocalDataSourceImpl: AuthLocalDataSource {
 
     public func clearTokens() throws {
         do {
-            try keychainClient.deleteAll()
+            try self.keychainClient.deleteAll()
         } catch let error as KeychainError {
             throw KeychainErrorMapper.map(error)
         }
@@ -79,14 +79,14 @@ public final class AuthLocalDataSourceImpl: AuthLocalDataSource {
         }
         
         do {
-            try keychainClient.save(key: Constants.KeychainKey.isAnonymous, data: data)
+            try self.keychainClient.save(key: Constants.KeychainKey.isAnonymous, data: data)
         } catch let error as KeychainError {
             throw KeychainErrorMapper.map(error)
         }
     }
 
     public func isAnonymous() -> Bool {
-        guard let data = keychainClient.load(key: Constants.KeychainKey.isAnonymous),
+        guard let data = self.keychainClient.load(key: Constants.KeychainKey.isAnonymous),
               let value = String(data: data, encoding: .utf8) else {
             return true
         }

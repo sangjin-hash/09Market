@@ -14,10 +14,10 @@ public enum AppError: Error, Equatable {
     case unknown(message: String)
 }
 
+
 // MARK: - Error Handle Strategy
 
 extension AppError {
-
     public enum HandleStrategy {
         /// 재시도 가능한 에러 (재시도 버튼 포함 다이얼로그)
         case retryable(message: String)
@@ -37,15 +37,15 @@ extension AppError {
         case .network(.notConnected),
              .network(.timeout),
              .network(.serverError):
-            return .retryable(message: message)
+            return .retryable(message: self.message)
 
         case .auth(.providerFailed),
              .auth(.rateLimited):
-            return .retryable(message: message)
+            return .retryable(message: self.message)
 
         // User Guide
         case .storage:
-            return .userGuide(message: message)
+            return .userGuide(message: self.message)
 
         // Developer Error
         case .network(.notFound),
@@ -56,33 +56,43 @@ extension AppError {
         case .unknown:
             return .silent
 
-        // 세션만료/인증실패 → 로그인 화면 이동
+        // 세션만료/인증실패 -> 로그인 화면 이동
         case .auth(.sessionExpired),
              .auth(.invalidCredentials):
-            return .requireLogin(message: message)
+            return .requireLogin(message: self.message)
         }
     }
 }
 
+
 // MARK: - Properties
 
 extension AppError {
-
     public var isRequireReAuth: Bool {
         switch self {
         case .auth(.sessionExpired), .auth(.invalidCredentials):
             return true
-        default:
+        case .auth(.providerFailed), .auth(.rateLimited):
+            return false
+        case .network:
+            return false
+        case .storage:
+            return false
+        case .unknown:
             return false
         }
     }
 
     public var message: String {
         switch self {
-        case .network(let type):    return type.message
-        case .auth(let type):       return type.message
-        case .storage(let type):    return type.message
-        case .unknown(let message): return message
+        case .network(let type):
+            return type.message
+        case .auth(let type):
+            return type.message
+        case .storage(let type):
+            return type.message
+        case .unknown(let message):
+            return message
         }
     }
 }

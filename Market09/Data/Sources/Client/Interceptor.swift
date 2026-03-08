@@ -6,10 +6,10 @@
 //
 
 import Foundation
+
 import Core
 
 final class Interceptor: @unchecked Sendable {
-
     private let localDataSource: AuthLocalDataSource
     private let remoteDataSource: AuthRemoteDataSource
     private let apiKey: String
@@ -28,10 +28,10 @@ final class Interceptor: @unchecked Sendable {
     func adapt(_ request: URLRequest) -> URLRequest {
         var request = request
 
-        if let token = localDataSource.loadToken() {
+        if let token = self.localDataSource.loadToken() {
             request.setValue("Bearer \(token.accessToken)", forHTTPHeaderField: "Authorization")
         }
-        request.setValue(apiKey, forHTTPHeaderField: "apikey")
+        request.setValue(self.apiKey, forHTTPHeaderField: "apikey")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         return request
@@ -39,12 +39,12 @@ final class Interceptor: @unchecked Sendable {
 
     /// Keychain의 refreshToken으로 세션 갱신 후 새 토큰 저장
     func refreshToken() async throws {
-        guard let token = localDataSource.loadToken() else {
+        guard let token = self.localDataSource.loadToken() else {
             throw AppError.auth(.sessionExpired)
         }
 
-        let response = try await remoteDataSource.refreshToken(token.refreshToken)
-        try localDataSource.saveTokens(
+        let response = try await self.remoteDataSource.refreshToken(token.refreshToken)
+        try self.localDataSource.saveTokens(
             accessToken: response.accessToken,
             refreshToken: response.refreshToken
         )

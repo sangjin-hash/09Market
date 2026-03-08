@@ -6,10 +6,10 @@
 //
 
 import Foundation
+
 import Core
 
 enum NetworkErrorMapper {
-
     static func map(_ error: URLError) -> AppError {
         switch error.code {
         case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed:

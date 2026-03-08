@@ -5,13 +5,13 @@
 //  Created by Sangjin Lee
 //
 
+import UIKit
+
 import Core
 import Home
 import Shared_DI
-import UIKit
 
 public final class HomeAssembly: Assembly {
-
     public init() {}
 
     public func assemble(container: Container) {

@@ -9,7 +9,6 @@ import Core
 import Domain
 
 public final class AuthRepositoryImpl: AuthRepository {
-
     private let remoteDataSource: AuthRemoteDataSource
     private let localDataSource: AuthLocalDataSource
 
@@ -21,12 +20,13 @@ public final class AuthRepositoryImpl: AuthRepository {
         self.localDataSource = localDataSource
     }
 
+
     // MARK: - SignIn
 
     public func signInAnonymously() async throws -> AuthToken {
-        let response = try await remoteDataSource.signInAnonymously()
-        try localDataSource.saveTokens(accessToken: response.accessToken, refreshToken: response.refreshToken)
-        try localDataSource.saveAnonymousFlag(true)
+        let response = try await self.remoteDataSource.signInAnonymously()
+        try self.localDataSource.saveTokens(accessToken: response.accessToken, refreshToken: response.refreshToken)
+        try self.localDataSource.saveAnonymousFlag(true)
         return AuthMapper.toAuthTokenEntity(response)
     }
 
@@ -35,49 +35,51 @@ public final class AuthRepositoryImpl: AuthRepository {
         idToken: String,
         nonce: String?
     ) async throws -> AuthToken {
-        let response = try await remoteDataSource.signInWithIdToken(
+        let response = try await self.remoteDataSource.signInWithIdToken(
             provider: provider,
             idToken: idToken,
             nonce: nonce
         )
         
-        try localDataSource.saveTokens(accessToken: response.accessToken, refreshToken: response.refreshToken)
-        try localDataSource.saveAnonymousFlag(false)
+        try self.localDataSource.saveTokens(accessToken: response.accessToken, refreshToken: response.refreshToken)
+        try self.localDataSource.saveAnonymousFlag(false)
         return AuthMapper.toAuthTokenEntity(response)
     }
+
 
     // MARK: - Token
 
     public func refreshToken() async throws -> AuthToken {
-        guard let token = localDataSource.loadToken() else {
+        guard let token = self.localDataSource.loadToken() else {
             throw AppError.storage(.notFound)
         }
         
-        let response = try await remoteDataSource.refreshToken(token.refreshToken)
-        try localDataSource.saveTokens(accessToken: response.accessToken, refreshToken: response.refreshToken)
+        let response = try await self.remoteDataSource.refreshToken(token.refreshToken)
+        try self.localDataSource.saveTokens(accessToken: response.accessToken, refreshToken: response.refreshToken)
         return AuthMapper.toAuthTokenEntity(response)
     }
 
     public func currentTokenStatus() -> TokenStatus {
-        TokenStatus.evaluate(
-            token: localDataSource.loadToken(),
-            isAnonymous: localDataSource.isAnonymous()
+        return TokenStatus.evaluate(
+            token: self.localDataSource.loadToken(),
+            isAnonymous: self.localDataSource.isAnonymous()
         )
     }
 
     public func clearToken() throws {
-        try localDataSource.clearTokens()
+        try self.localDataSource.clearTokens()
     }
+
 
     // MARK: - SignOut & Delete Account
 
     public func signOut(provider: AuthProvider) async throws {
-        try await remoteDataSource.signOut(provider: provider)
-        try localDataSource.clearTokens()
+        try await self.remoteDataSource.signOut(provider: provider)
+        try self.localDataSource.clearTokens()
     }
 
     public func deleteAccount() async throws {
-        try await remoteDataSource.deleteAccount()
-        try localDataSource.clearTokens()
+        try await self.remoteDataSource.deleteAccount()
+        try self.localDataSource.clearTokens()
     }
 }

@@ -6,7 +6,6 @@
 //
 
 public enum ErrorString {
-
     public enum Network {
         public static let notConnected    = "네트워크 연결을 확인해주세요."
         public static let timeout         = "요청 시간이 초과되었습니다. 다시 시도해주세요."

@@ -5,15 +5,16 @@
 //  Created by Sangjin Lee
 //
 
+import UIKit
+
 import Authenticate
 import Core
 import Shared_ReactiveX
-import UIKit
 
 final class AuthCoordinatorImpl: AuthCoordinator {
-    
+
     // MARK: - Coordinator Protocol
-    
+
     public var childCoordinators: [Coordinator] = []
     public let navigationController: UINavigationController
     
@@ -45,20 +46,20 @@ final class AuthCoordinatorImpl: AuthCoordinator {
     public func start() {
         // 1. SplashViewController 표시
         let splashVC = SplashViewController()
-        navigationController.setViewControllers([splashVC], animated: false)
+        self.navigationController.setViewControllers([splashVC], animated: false)
 
         // 2. authState 확정 시 delegate 호출
-        authReactor.state.map(\.authState)
+        self.authReactor.state.map(\.authState)
             .compactMap { $0 }
             .take(1)
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] state in
                 self?.delegate?.authDidCheckOnLaunch(state: state)
             })
-            .disposed(by: disposeBag)
+            .disposed(by: self.disposeBag)
 
         // 3. 에러 시 ErrorDialog 표시 (splashVC 위에 표시)
-        authReactor.state.map(\.error)
+        self.authReactor.state.map(\.error)
             .compactMap { $0 }
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] error in
@@ -69,9 +70,9 @@ final class AuthCoordinatorImpl: AuthCoordinator {
                     retryAction: { self.authReactor.action.onNext(.checkAuth) }
                 )
             })
-            .disposed(by: disposeBag)
+            .disposed(by: self.disposeBag)
 
         // 4. checkAuth 실행
-        authReactor.action.onNext(.checkAuth)
+        self.authReactor.action.onNext(.checkAuth)
     }
 }

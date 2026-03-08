@@ -5,12 +5,12 @@
 //  Created by Sangjin Lee
 //
 
-import Domain
 import Foundation
+
+import Domain
 import Shared_DI
 
 public final class DataAssembly: Assembly {
-
     public init() {}
 
     public func assemble(container: Container) {
@@ -48,16 +48,22 @@ public final class DataAssembly: Assembly {
         // MARK: - APIClient
 
         container.register(Interceptor.self) { r in
-            Interceptor(
+            guard let apiKey = Bundle.main.infoDictionary?["SUPABASE_ANON_KEY"] as? String else {
+                fatalError("SUPABASE_ANON_KEY가 Info.plist에 없습니다. Secrets.xcconfig을 확인하세요.")
+            }
+            return Interceptor(
                 localDataSource: r.resolve(),
                 remoteDataSource: r.resolve(),
-                apiKey: Bundle.main.infoDictionary?["SUPABASE_ANON_KEY"] as! String
+                apiKey: apiKey
             )
         }.inObjectScope(.container)
 
         container.register(APIClient.self) { r in
-            APIClientImpl(
-                baseURL: Bundle.main.infoDictionary?["SUPABASE_URL"] as! String,
+            guard let baseURL = Bundle.main.infoDictionary?["SUPABASE_URL"] as? String else {
+                fatalError("SUPABASE_URL이 Info.plist에 없습니다. Secrets.xcconfig을 확인하세요.")
+            }
+            return APIClientImpl(
+                baseURL: baseURL,
                 interceptor: r.resolve()
             )
         }.inObjectScope(.container)

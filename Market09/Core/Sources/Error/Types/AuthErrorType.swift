@@ -13,10 +13,14 @@ public enum AuthErrorType: Equatable {
 
     public var message: String {
         switch self {
-        case .sessionExpired:     return ErrorString.Auth.sessionExpired
-        case .invalidCredentials: return ErrorString.Auth.invalidCredentials
-        case .providerFailed:     return ErrorString.Auth.providerFailed
-        case .rateLimited:        return ErrorString.Auth.rateLimited
+        case .sessionExpired:
+            return ErrorString.Auth.sessionExpired
+        case .invalidCredentials:
+            return ErrorString.Auth.invalidCredentials
+        case .providerFailed:
+            return ErrorString.Auth.providerFailed
+        case .rateLimited:
+            return ErrorString.Auth.rateLimited
         }
     }
 }

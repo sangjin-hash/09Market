@@ -15,10 +15,10 @@ public protocol Coordinator: AnyObject {
 
 public extension Coordinator {
     func addChild(_ coordinator: Coordinator) {
-        childCoordinators.append(coordinator)
+        self.childCoordinators.append(coordinator)
     }
 
     func removeChild(_ coordinator: Coordinator) {
-        childCoordinators.removeAll { $0 === coordinator }
+        self.childCoordinators.removeAll { $0 === coordinator }
     }
 }

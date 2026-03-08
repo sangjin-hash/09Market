@@ -18,6 +18,6 @@ public struct AuthToken {
 
     /// accessToken의 JWT exp claim을 검사하여 만료 여부 반환
     public var isExpired: Bool {
-        JWTDecoder.isExpired(accessToken)
+        return JWTDecoder.isExpired(self.accessToken)
     }
 }

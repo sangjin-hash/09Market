@@ -8,7 +8,6 @@
 import Core
 
 enum KeychainErrorMapper {
-
     static func map(_ error: KeychainError) -> AppError {
         switch error {
         case .saveFailed:

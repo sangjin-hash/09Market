@@ -6,11 +6,11 @@
 //
 
 import Foundation
-import Domain
+
 import Core
+import Domain
 
 final class UserRepositoryImpl: UserRepository {
-
     private let remoteDataSource: UserRemoteDataSource
 
     init(remoteDataSource: UserRemoteDataSource) {
@@ -18,7 +18,7 @@ final class UserRepositoryImpl: UserRepository {
     }
 
     func getMe() async throws -> User? {
-        try await remoteDataSource.getMe()
+        return try await self.remoteDataSource.getMe()
             .map(UserMapper.toUserEntity)
     }
 }

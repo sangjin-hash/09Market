@@ -5,14 +5,14 @@
 //  Created by Sangjin Lee
 //
 
+import UIKit
+
 import Core
 import Domain
 import Profile
 import Shared_DI
-import UIKit
 
 public final class ProfileAssembly: Assembly {
-
     public init() {}
 
     public func assemble(container: Container) {

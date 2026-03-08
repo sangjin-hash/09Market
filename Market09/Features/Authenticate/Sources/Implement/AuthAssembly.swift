@@ -5,14 +5,14 @@
 //  Created by Sangjin Lee
 //
 
+import UIKit
+
 import Authenticate
 import Core
 import Domain
 import Shared_DI
-import UIKit
 
 public final class AuthAssembly: Assembly {
-
     public init() {}
 
     public func assemble(container: Container) {

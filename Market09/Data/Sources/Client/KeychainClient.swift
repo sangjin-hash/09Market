@@ -6,6 +6,7 @@
 //
 
 import Foundation
+
 import Core
 
 enum Constants {
@@ -26,8 +27,7 @@ public protocol KeychainClient {
 }
 
 public final class KeychainClientImpl: KeychainClient {
-    
-    private let service = Constants.bundleId
+    private let service: String = Constants.bundleId
 
     public init() {}
     
@@ -36,14 +36,14 @@ public final class KeychainClientImpl: KeychainClient {
         
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
+            kSecAttrService as String: self.service,
             kSecAttrAccount as String: key,
             kSecValueData as String: data,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         ]
-        
+
         let status = SecItemAdd(query as CFDictionary, nil)
-        
+
         guard status == errSecSuccess else {
             throw KeychainError.saveFailed(status)
         }
@@ -52,7 +52,7 @@ public final class KeychainClientImpl: KeychainClient {
     public func load(key: String) -> Data? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
+            kSecAttrService as String: self.service,
             kSecAttrAccount as String: key,
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne
@@ -68,12 +68,12 @@ public final class KeychainClientImpl: KeychainClient {
     public func delete(key: String) throws {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
+            kSecAttrService as String: self.service,
             kSecAttrAccount as String: key
         ]
-        
+
         let status = SecItemDelete(query as CFDictionary)
-        
+
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw KeychainError.deleteFailed(status)
         }
@@ -82,11 +82,11 @@ public final class KeychainClientImpl: KeychainClient {
     public func deleteAll() throws {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service
+            kSecAttrService as String: self.service
         ]
-        
+
         let status = SecItemDelete(query as CFDictionary)
-        
+
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw KeychainError.deleteFailed(status)
         }

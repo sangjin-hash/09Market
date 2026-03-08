@@ -22,7 +22,8 @@ public protocol AuthRepository {
     ///   - nonce: CSRF 방지를 위한 임의 문자열 (Apple 로그인 시 필수)
     /// - Returns: 발급된 인증 토큰
     func signInWithIdToken(provider: AuthProvider, idToken: String, nonce: String?) async throws -> AuthToken
-    
+
+
     // MARK: - Token
 
     /// Keychain에 저장된 refreshToken으로 세션을 갱신하고 새 토큰을 저장
@@ -35,7 +36,8 @@ public protocol AuthRepository {
 
     /// Keychain에 저장된 모든 인증 데이터를 삭제
     func clearToken() throws
-    
+
+
     // MARK: - SignOut & Delete Account
 
     /// 현재 세션을 종료하고 Keychain의 토큰을 삭제

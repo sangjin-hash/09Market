@@ -6,10 +6,12 @@
 //
 
 import Foundation
+
+import Core
+
 import Auth
 import GoogleSignIn
 import Supabase
-import Core
 
 public protocol AuthRemoteDataSource {
     /// 익명 로그인으로 임시 세션을 생성
@@ -37,7 +39,6 @@ public protocol AuthRemoteDataSource {
 }
 
 public final class AuthRemoteDataSourceImpl: AuthRemoteDataSource {
-    
     private let client: SupabaseClient
     
     public init(supabaseURL: URL, supabaseKey: String) {

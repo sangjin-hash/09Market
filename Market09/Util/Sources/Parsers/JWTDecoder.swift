@@ -8,7 +8,6 @@
 import Foundation
 
 public enum JWTDecoder {
-
     /// JWT accessToken의 exp claim을 추출하여 만료 여부 반환
     /// - Parameter token: JWT 문자열
     /// - Returns: 만료되었거나 디코딩 실패 시 true

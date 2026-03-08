@@ -8,7 +8,6 @@
 import UIKit
 
 public enum LoadingIndicator {
-
     private static let overlayTag = 999_001
     private static let indicatorTag = 999_002
 

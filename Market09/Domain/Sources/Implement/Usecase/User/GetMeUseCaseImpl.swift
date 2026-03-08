@@ -9,7 +9,6 @@ import Core
 import Domain
 
 public final class GetMeUseCaseImpl: GetMeUseCase {
-
     private let userRepository: UserRepository
 
     public init(userRepository: UserRepository) {
@@ -17,6 +16,6 @@ public final class GetMeUseCaseImpl: GetMeUseCase {
     }
 
     public func execute() async throws -> User? {
-        try await userRepository.getMe()
+        return try await self.userRepository.getMe()
     }
 }

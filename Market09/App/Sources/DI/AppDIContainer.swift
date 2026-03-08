@@ -15,17 +15,16 @@ import ProfileImpl
 import Shared_DI
 
 final class AppDIContainer {
-    
     static let shared = AppDIContainer()
 
     private let assembler: Assembler
 
     var resolver: Resolver {
-        assembler.resolver
+        return self.assembler.resolver
     }
 
     private init() {
-        assembler = Assembler([
+        self.assembler = Assembler([
             DataAssembly(),
             DomainAssembly(),
             

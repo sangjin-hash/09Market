@@ -8,7 +8,6 @@
 import UIKit
 
 final class SplashViewController: UIViewController {
-
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.text = "스플래시"
@@ -20,12 +19,12 @@ final class SplashViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemBackground
+        self.view.backgroundColor = .systemBackground
 
-        view.addSubview(titleLabel)
+        self.view.addSubview(self.titleLabel)
         NSLayoutConstraint.activate([
-            titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            titleLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+            self.titleLabel.centerXAnchor.constraint(equalTo: self.view.centerXAnchor),
+            self.titleLabel.centerYAnchor.constraint(equalTo: self.view.centerYAnchor)
         ])
     }
 }

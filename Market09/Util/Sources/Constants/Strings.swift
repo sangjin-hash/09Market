@@ -6,7 +6,6 @@
 //
 
 public enum Strings {
-
     public enum Common {
         public static let confirm = "확인"
         public static let cancel = "취소"

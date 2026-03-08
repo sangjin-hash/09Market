@@ -6,6 +6,7 @@
 //
 
 import Foundation
+
 import Core
 
 // MARK: - APIClient Protocol
@@ -18,10 +19,10 @@ public protocol APIClient {
     func patch(_ endpoint: String, body: Data?) async throws -> Data
 }
 
+
 // MARK: - APIClientImpl
 
 final class APIClientImpl: APIClient, @unchecked Sendable {
-
     private let baseURL: String
     private let session: URLSession
     private let interceptor: Interceptor
@@ -37,18 +38,19 @@ final class APIClientImpl: APIClient, @unchecked Sendable {
         self.interceptor = interceptor
     }
 
+
     // MARK: - Public Methods
 
     func get(_ endpoint: String) async throws -> Data {
-        try await request(endpoint: endpoint, method: "GET")
+        return try await request(endpoint: endpoint, method: "GET")
     }
 
     func post(_ endpoint: String, body: Data?) async throws -> Data {
-        try await request(endpoint: endpoint, method: "POST", body: body)
+        return try await request(endpoint: endpoint, method: "POST", body: body)
     }
 
     func put(_ endpoint: String, body: Data?) async throws -> Data {
-        try await request(endpoint: endpoint, method: "PUT", body: body)
+        return try await request(endpoint: endpoint, method: "PUT", body: body)
     }
 
     func delete(_ endpoint: String) async throws {
@@ -56,8 +58,9 @@ final class APIClientImpl: APIClient, @unchecked Sendable {
     }
 
     func patch(_ endpoint: String, body: Data?) async throws -> Data {
-        try await request(endpoint: endpoint, method: "PATCH", body: body)
+        return try await request(endpoint: endpoint, method: "PATCH", body: body)
     }
+
 
     // MARK: - Private
 
@@ -66,7 +69,7 @@ final class APIClientImpl: APIClient, @unchecked Sendable {
         method: String,
         body: Data? = nil
     ) async throws -> Data {
-        let urlString = baseURL + endpoint
+        let urlString = self.baseURL + endpoint
         guard let url = URL(string: urlString) else {
             throw AppError.network(.invalidResponse)
         }
@@ -74,7 +77,7 @@ final class APIClientImpl: APIClient, @unchecked Sendable {
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = method
         urlRequest.httpBody = body
-        urlRequest = interceptor.adapt(urlRequest)
+        urlRequest = self.interceptor.adapt(urlRequest)
 
         let (data, response) = try await execute(urlRequest)
 
@@ -102,10 +105,10 @@ final class APIClientImpl: APIClient, @unchecked Sendable {
 
     /// 401 응답 시 토큰 리프레시 후 1회 재시도
     private func retryAfterRefresh(_ originalRequest: URLRequest) async throws -> Data {
-        try await interceptor.refreshToken()
+        try await self.interceptor.refreshToken()
 
         var retryRequest = originalRequest
-        retryRequest = interceptor.adapt(retryRequest)
+        retryRequest = self.interceptor.adapt(retryRequest)
 
         let (data, response) = try await execute(retryRequest)
 
@@ -119,7 +122,7 @@ final class APIClientImpl: APIClient, @unchecked Sendable {
 
     private func execute(_ request: URLRequest) async throws -> (Data, URLResponse) {
         do {
-            return try await session.data(for: request)
+            return try await self.session.data(for: request)
         } catch let error as URLError {
             throw NetworkErrorMapper.map(error)
         }

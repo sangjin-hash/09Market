@@ -38,7 +38,6 @@ public enum Colors {
 // MARK: - UIColor + Hex
 
 extension UIColor {
-
     convenience init(hex: String) {
         var hexString = hex.trimmingCharacters(in: .whitespacesAndNewlines)
         if hexString.hasPrefix("#") {

@@ -5,10 +5,11 @@
 //  Created by Sangjin Lee
 //
 
+import UIKit
+
 import Core
 import Profile
 import Shared_ReactiveX
-import UIKit
 
 final class ProfileCoordinatorImpl: ProfileCoordinator {
     
@@ -41,23 +42,23 @@ final class ProfileCoordinatorImpl: ProfileCoordinator {
 
     public func start() {
         let viewController = ProfileViewController()
-        viewController.reactor = reactor
-        
-        reactor.pulse(\.$loginRequested)
+        viewController.reactor = self.reactor
+
+        self.reactor.pulse(\.$loginRequested)
             .compactMap { $0 }
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] _ in
                 self?.delegate?.profileDidRequestLogin()
             })
-            .disposed(by: disposeBag)
+            .disposed(by: self.disposeBag)
 
-        reactor.pulse(\.$loginRequired)
+        self.reactor.pulse(\.$loginRequired)
             .compactMap { $0 }
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] _ in
                 self?.delegate?.profileDidRequireLogin()
             })
-            .disposed(by: disposeBag)
-        navigationController.setViewControllers([viewController], animated: false)
+            .disposed(by: self.disposeBag)
+        self.navigationController.setViewControllers([viewController], animated: false)
     }
 }

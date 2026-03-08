@@ -9,7 +9,7 @@ import Core
 
 enum UserMapper {
     static func toUserEntity(_ response: UserResponse) -> User {
-        User(
+        return User(
             id: response.id,
             nickname: response.nickname,
             profileUrl: response.profileUrl,

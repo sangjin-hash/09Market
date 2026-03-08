@@ -6,10 +6,10 @@
 //
 
 import UIKit
+
 import Util
 
 public enum ConfirmDialog {
-
     public static func show(
         on viewController: UIViewController,
         message: String,

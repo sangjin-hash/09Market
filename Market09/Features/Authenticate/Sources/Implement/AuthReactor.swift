@@ -10,7 +10,6 @@ import Domain
 import Shared_ReactiveX
 
 final class AuthReactor: Reactor {
-    
     enum Action {
         case checkAuth
     }
@@ -25,8 +24,8 @@ final class AuthReactor: Reactor {
         var error: AppError? = nil
     }
     
-    let initialState = State()
-    
+    let initialState: State = State()
+
     private let checkAuthOnLaunchUseCase: CheckAuthOnLaunchUseCase
 
     init(checkAuthOnLaunchUseCase: CheckAuthOnLaunchUseCase) {
@@ -35,7 +34,6 @@ final class AuthReactor: Reactor {
 }
 
 extension AuthReactor {
-    
     func mutate(action: Action) -> Observable<Mutation> {
         switch action {
         case .checkAuth:

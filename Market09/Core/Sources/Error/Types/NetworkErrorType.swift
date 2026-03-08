@@ -14,11 +14,16 @@ public enum NetworkErrorType: Equatable {
 
     public var message: String {
         switch self {
-        case .notConnected:    return ErrorString.Network.notConnected
-        case .timeout:         return ErrorString.Network.timeout
-        case .notFound:        return ErrorString.Network.notFound
-        case .serverError:     return ErrorString.Network.serverError
-        case .invalidResponse: return ErrorString.Network.invalidResponse
+        case .notConnected:
+            return ErrorString.Network.notConnected
+        case .timeout:
+            return ErrorString.Network.timeout
+        case .notFound:
+            return ErrorString.Network.notFound
+        case .serverError:
+            return ErrorString.Network.serverError
+        case .invalidResponse:
+            return ErrorString.Network.invalidResponse
         }
     }
 }

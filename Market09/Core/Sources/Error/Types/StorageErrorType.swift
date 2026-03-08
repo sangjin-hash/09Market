@@ -12,6 +12,9 @@ public enum StorageErrorType: Equatable {
     case notFound
 
     public var message: String {
-        ErrorString.Storage.insufficientSpace
+        switch self {
+        case .saveFailed, .loadFailed, .deleteFailed, .notFound:
+            return ErrorString.Storage.insufficientSpace
+        }
     }
 }

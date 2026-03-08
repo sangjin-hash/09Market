@@ -5,20 +5,21 @@
 //  Created by Sangjin Lee
 //
 
+import UIKit
+
 import Core
 import DesignSystem
 import Shared_ReactiveX
-import UIKit
 import Util
 
 import GoogleSignIn
 
 final class LoginViewController: UIViewController {
-    
     var disposeBag = DisposeBag()
-    
+
+
     // MARK: - UI
-    
+
     private let googleLoginButton: UIButton = {
         let button = UIButton(type: .system)
         button.setTitle(Strings.Auth.googleLogin, for: .normal)
@@ -38,28 +39,27 @@ final class LoginViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemBackground
+        self.view.backgroundColor = .systemBackground
         setupLayout()
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        navigationController?.setNavigationBarHidden(false, animated: animated)
+        self.navigationController?.setNavigationBarHidden(false, animated: animated)
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        navigationController?.setNavigationBarHidden(true, animated: animated)
+        self.navigationController?.setNavigationBarHidden(true, animated: animated)
     }
 }
 
 extension LoginViewController: View {
-    
     func bind(reactor: LoginReactor) {
-        
+
         // MARK: - Action
-        
-        googleLoginButton.rx.tap
+
+        self.googleLoginButton.rx.tap
             .subscribe(onNext: { [weak self] in
                 guard let self else { return }
 
@@ -80,13 +80,13 @@ extension LoginViewController: View {
                     reactor.action.onNext(.googleLoginCompleted(idToken: idToken))
                 }
             })
-            .disposed(by: disposeBag)
+            .disposed(by: self.disposeBag)
 
-        appleLoginButton.rx.tap
+        self.appleLoginButton.rx.tap
             .map { Reactor.Action.appleLoginTapped }
             .bind(to: reactor.action)
-            .disposed(by: disposeBag)
-        
+            .disposed(by: self.disposeBag)
+
 
         // MARK: - State
 
@@ -101,7 +101,7 @@ extension LoginViewController: View {
                     LoadingIndicator.hide(from: self.view)
                 }
             })
-            .disposed(by: disposeBag)
+            .disposed(by: self.disposeBag)
 
         reactor.pulse(\.$error)
             .compactMap { $0 }
@@ -110,27 +110,27 @@ extension LoginViewController: View {
                 guard let self else { return }
                 ErrorDialog.show(on: self, error: error)
             })
-            .disposed(by: disposeBag)
+            .disposed(by: self.disposeBag)
     }
 }
 
 extension LoginViewController {
-    
+
     // MARK: - Layout
 
     private func setupLayout() {
         let stackView = UIStackView(arrangedSubviews: [
-            googleLoginButton, appleLoginButton
+            self.googleLoginButton, self.appleLoginButton
         ])
         stackView.axis = .vertical
         stackView.spacing = 16
         stackView.alignment = .center
         stackView.translatesAutoresizingMaskIntoConstraints = false
 
-        view.addSubview(stackView)
+        self.view.addSubview(stackView)
         NSLayoutConstraint.activate([
-            stackView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            stackView.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            stackView.centerXAnchor.constraint(equalTo: self.view.centerXAnchor),
+            stackView.centerYAnchor.constraint(equalTo: self.view.centerYAnchor),
         ])
     }
 }

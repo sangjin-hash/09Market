@@ -6,6 +6,7 @@
 //
 
 import Foundation
+
 import Core
 
 protocol UserRemoteDataSource {
@@ -15,7 +16,6 @@ protocol UserRemoteDataSource {
 }
 
 final class UserRemoteDataSourceImpl: UserRemoteDataSource {
-
     private let apiClient: APIClient
 
     init(apiClient: APIClient) {
@@ -23,8 +23,10 @@ final class UserRemoteDataSourceImpl: UserRemoteDataSource {
     }
 
     func getMe() async throws -> UserResponse? {
-        try await performRequest {
-            let endpoint = Bundle.main.infoDictionary?["API_ME"] as! String
+        return try await performRequest {
+            guard let endpoint = Bundle.main.infoDictionary?["API_ME"] as? String else {
+                fatalError("API_ME가 Info.plist에 없습니다. Secrets.xcconfig을 확인하세요.")
+            }
             let data = try await self.apiClient.get(endpoint)
 
             if data.isEmpty { return nil }

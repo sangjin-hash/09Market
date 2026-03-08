@@ -8,10 +8,9 @@
 import Domain
 
 enum AuthMapper {
-    
     /// AuthTokenResponse DTO -> AuthToken Entity
     static func toAuthTokenEntity(_ response: AuthTokenResponse) -> AuthToken {
-        AuthToken(
+        return AuthToken(
             accessToken: response.accessToken,
             refreshToken: response.refreshToken
         )

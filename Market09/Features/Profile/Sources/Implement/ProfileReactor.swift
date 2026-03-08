@@ -10,7 +10,6 @@ import Domain
 import Shared_ReactiveX
 
 final class ProfileReactor: Reactor {
-    
     enum Action {
         case viewDidAppear
         case loginButtonTapped
@@ -36,7 +35,7 @@ final class ProfileReactor: Reactor {
         @Pulse var error: AppError?
     }
 
-    let initialState = State()
+    let initialState: State = State()
 
     private let signOutUseCase: SignOutUseCase
     private let deleteAccountUseCase: DeleteAccountUseCase
@@ -55,7 +54,7 @@ final class ProfileReactor: Reactor {
 
 extension ProfileReactor {
     func transform(mutation: Observable<Mutation>) -> Observable<Mutation> {
-        let userMutation = userStore.currentUser
+        let userMutation = self.userStore.currentUser
             .map { Mutation.setUser($0) }
             .asObservable()
         return .merge(mutation, userMutation)
@@ -73,7 +72,7 @@ extension ProfileReactor {
             return .just(.setLoginRequired)
 
         case .logoutButtonTapped:
-            guard let provider = userStore.currentUser.value?.provider else {
+            guard let provider = self.userStore.currentUser.value?.provider else {
                 return .just(.setError(AppError.auth(.providerFailed)))
             }
             return Observable.concat([

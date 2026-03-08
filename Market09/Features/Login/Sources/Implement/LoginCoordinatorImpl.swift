@@ -5,15 +5,16 @@
 //  Created by Sangjin Lee
 //
 
+import UIKit
+
 import Core
 import Login
 import Shared_ReactiveX
-import UIKit
 
 final class LoginCoordinatorImpl: LoginCoordinator {
-    
+
     // MARK: - Coordinator Protocol
-    
+
     public var childCoordinators: [Coordinator] = []
     public let navigationController: UINavigationController
     
@@ -44,10 +45,10 @@ final class LoginCoordinatorImpl: LoginCoordinator {
     
     public func start() {
         let viewController = LoginViewController()
-        viewController.reactor = loginReactor
-        
+        viewController.reactor = self.loginReactor
+
         // 로그인 성공 시 delegate 호출
-        loginReactor.state.map(\.isLoginCompleted)
+        self.loginReactor.state.map(\.isLoginCompleted)
             .distinctUntilChanged()
             .filter { $0 }
             .take(1)
@@ -55,8 +56,8 @@ final class LoginCoordinatorImpl: LoginCoordinator {
             .subscribe(onNext: { [weak self] _ in
                 self?.delegate?.loginDidComplete()
             })
-            .disposed(by: disposeBag)
-        
-        navigationController.pushViewController(viewController, animated: true)
+            .disposed(by: self.disposeBag)
+
+        self.navigationController.pushViewController(viewController, animated: true)
     }
 }

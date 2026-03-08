@@ -10,7 +10,6 @@ import Domain
 import Shared_DI
 
 public final class DomainAssembly: Assembly {
-
     public init() {}
 
     public func assemble(container: Container) {

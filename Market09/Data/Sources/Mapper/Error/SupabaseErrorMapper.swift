@@ -6,11 +6,12 @@
 //
 
 import Foundation
-import Auth
+
 import Core
 
-enum SupabaseErrorMapper {
+import Auth
 
+enum SupabaseErrorMapper {
     static func map(_ error: AuthError) -> AppError {
         switch error {
         case .sessionMissing:

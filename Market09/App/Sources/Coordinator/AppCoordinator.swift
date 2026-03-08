@@ -5,13 +5,14 @@
 //  Created by Sangjin Lee
 //
 
+import UIKit
+
 import Authenticate
 import Core
 import Domain
 import Login
 import Profile
 import Shared_DI
-import UIKit
 
 final class AppCoordinator: Coordinator {
 
@@ -46,9 +47,9 @@ final class AppCoordinator: Coordinator {
     // MARK: - Start
 
     func start() {
-        window.rootViewController = navigationController
-        window.makeKeyAndVisible()
-        startAuth()
+        self.window.rootViewController = self.navigationController
+        self.window.makeKeyAndVisible()
+        self.startAuth()
     }
 }
 
@@ -58,31 +59,31 @@ final class AppCoordinator: Coordinator {
 private extension AppCoordinator {
     /// 앱 실행 시 인증/인가 작업 처리
     func startAuth() {
-        let authCoordinator: AuthCoordinator = diContainer.resolver.resolve(argument: navigationController)
-        
+        let authCoordinator: AuthCoordinator = self.diContainer.resolver.resolve(argument: self.navigationController)
+
         authCoordinator.delegate = self
-        addChild(authCoordinator)
+        self.addChild(authCoordinator)
         authCoordinator.start()
     }
 
     /// 홈 화면으로 이동
     func showTabBar() {
         let tabBarCoordinator = TabBarCoordinator(
-            navigationController: navigationController,
-            diContainer: diContainer,
+            navigationController: self.navigationController,
+            diContainer: self.diContainer,
             profileDelegate: self
         )
 
-        addChild(tabBarCoordinator)
+        self.addChild(tabBarCoordinator)
         tabBarCoordinator.start()
     }
 
     /// 로그인 화면으로 이동
     func showLogin() {
-        let loginCoordinator: LoginCoordinator = diContainer.resolver.resolve(argument: navigationController)
+        let loginCoordinator: LoginCoordinator = self.diContainer.resolver.resolve(argument: self.navigationController)
 
         loginCoordinator.delegate = self
-        addChild(loginCoordinator)
+        self.addChild(loginCoordinator)
         loginCoordinator.start()
     }
 }
@@ -96,12 +97,12 @@ extension AppCoordinator: AuthCoordinatorDelegate {
         switch state {
         case .anonymous:
             showTabBar()
-            
+
         case .authenticated:
             showTabBar()
-            
+
         case .unauthenticated:
-            loginContext = .launch
+            self.loginContext = .launch
             showLogin()
         }
     }
@@ -113,16 +114,16 @@ extension AppCoordinator: AuthCoordinatorDelegate {
 extension AppCoordinator: ProfileCoordinatorDelegate {
     /// 프로필 탭에서 로그인 요청 시 로그인 화면으로 이동
     func profileDidRequestLogin() {
-        loginContext = .profile
+        self.loginContext = .profile
         showLogin()
     }
-    
+
     /// 세션만료/인증실패로 강제 재인증 필요 (back 버튼 X, 스와이프 X)
     func profileDidRequireLogin() {
-        loginContext = .requireLogin
+        self.loginContext = .requireLogin
         showLogin()
-        navigationController.topViewController?.navigationItem.hidesBackButton = true
-        navigationController.interactivePopGestureRecognizer?.isEnabled = false
+        self.navigationController.topViewController?.navigationItem.hidesBackButton = true
+        self.navigationController.interactivePopGestureRecognizer?.isEnabled = false
     }
 }
 
@@ -132,21 +133,21 @@ extension AppCoordinator: ProfileCoordinatorDelegate {
 extension AppCoordinator: LoginCoordinatorDelegate {
     /// 로그인 성공 시 진입 경로에 따라 분기 (launch: 탭바 표시, profile: 이전 화면으로 복귀)
     func loginDidComplete() {
-        switch loginContext {
+        switch self.loginContext {
         case .launch:
             showTabBar()
-            
+
         case .profile:
-            navigationController.popViewController(animated: true)
-            
+            self.navigationController.popViewController(animated: true)
+
         case .requireLogin:
-            navigationController.interactivePopGestureRecognizer?.isEnabled = true
-            navigationController.popViewController(animated: true)
-            
+            self.navigationController.interactivePopGestureRecognizer?.isEnabled = true
+            self.navigationController.popViewController(animated: true)
+
         case .none:
             break
         }
-        
-        loginContext = nil
+
+        self.loginContext = nil
     }
 }

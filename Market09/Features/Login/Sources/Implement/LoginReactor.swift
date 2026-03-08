@@ -10,7 +10,6 @@ import Domain
 import Shared_ReactiveX
 
 final class LoginReactor: Reactor {
-
     enum Action {
         case googleLoginCompleted(idToken: String)
         case googleLoginFailed
@@ -30,8 +29,8 @@ final class LoginReactor: Reactor {
         @Pulse var error: AppError?
     }
     
-    let initialState = State()
-    
+    let initialState: State = State()
+
     private let signInWithIdTokenUseCase: SignInWithIdTokenUseCase
     
     init(signInWithIdTokenUseCase: SignInWithIdTokenUseCase) {

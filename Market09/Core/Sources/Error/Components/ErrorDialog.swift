@@ -6,10 +6,10 @@
 //
 
 import UIKit
+
 import Util
 
 public enum ErrorDialog {
-
     /// AppError의 handleStrategy에 따라 적절한 다이얼로그를 표시
     public static func show(
         on viewController: UIViewController,
@@ -40,10 +40,10 @@ public enum ErrorDialog {
     }
 }
 
+
 // MARK: - Private
 
 private extension ErrorDialog {
-
     static func showRetryAlert(
         on viewController: UIViewController,
         message: String,
