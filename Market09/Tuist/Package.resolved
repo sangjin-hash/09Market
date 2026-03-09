@@ -1,5 +1,5 @@
 {
-  "originHash" : "344c38867507265ecd044f0285112d27204970c63d467b86cb94ff25b63940c6",
+  "originHash" : "8c6f2dd8600d4648f7cf34c889c4e008f9d6f48a7e33a9c6522918514a8f824e",
   "pins" : [
     {
       "identity" : "alamofire",
@@ -74,12 +74,39 @@
       }
     },
     {
+      "identity" : "nimble",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Quick/Nimble.git",
+      "state" : {
+        "revision" : "7a46a5fc86cb917f69e3daf79fcb045283d8f008",
+        "version" : "8.1.2"
+      }
+    },
+    {
       "identity" : "promises",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/google/promises.git",
       "state" : {
         "revision" : "540318ecedd63d883069ae7f1ed811a2df00b6ac",
         "version" : "2.4.0"
+      }
+    },
+    {
+      "identity" : "pure",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/devxoul/Pure",
+      "state" : {
+        "revision" : "59ad1a492e97061527fd4896c3a6342afd9fa186",
+        "version" : "1.1.4"
+      }
+    },
+    {
+      "identity" : "quick",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Quick/Quick.git",
+      "state" : {
+        "revision" : "8cce6acd38f965f5baa3167b939f86500314022b",
+        "version" : "3.1.2"
       }
     },
     {

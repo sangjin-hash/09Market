@@ -21,6 +21,7 @@ let project = Project(
             sources: ["Sources/**"],
             dependencies: [
                 .external(name: "Swinject"),
+                .external(name: "Pure")
             ]
         ),
     ]
