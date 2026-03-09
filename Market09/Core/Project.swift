@@ -23,7 +23,7 @@ let project = Project(
                 .module(.util),
                 .project(
                     target: "Shared_ReactiveX",
-                    path: .relativeToRoot("Shared_ReactiveX")
+                    path: .relativeToRoot("Shared/Shared_ReactiveX")
                 ),
             ]
         ),

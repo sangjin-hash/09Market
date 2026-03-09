@@ -54,6 +54,7 @@ public enum Module: String {
     var projectPath: String {
         switch self {
         case .domainImpl: return "Domain"
+        case .sharedReactiveX, .sharedDI: return "Shared/\(rawValue)"
         default: return rawValue
         }
     }
