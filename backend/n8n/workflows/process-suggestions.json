@@ -14,22 +14,22 @@
     },
     {
       "parameters": {
-        "operation": "getAll",
-        "tableId": "influencer_suggestions",
-        "returnAll": true
+        "operation": "executeQuery",
+        "query": "SELECT * FROM influencer_suggestions WHERE status = 'processing';",
+        "options": {}
       },
       "id": "b1000001-0002-4000-8000-000000000002",
       "name": "Supabase - Get Suggestions",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
       "position": [
         250,
         0
       ],
       "credentials": {
-        "supabaseApi": {
-          "id": "SUPABASE_CREDENTIAL_ID",
-          "name": "Supabase account"
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres"
         }
       }
     },
@@ -74,11 +74,12 @@
       "position": [
         750,
         0
-      ]
+      ],
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst response = items[0].json;\n\n// Apify responds with an array even for a single profile\nconst profile = Array.isArray(response) ? response[0] : response;\n\nif (!profile || !profile.id) {\n  return [{ json: { _skip: true } }];\n}\n\nreturn [{\n  json: {\n    influencer: {\n      id: String(profile.id),\n      username: profile.username || '',\n      full_name: profile.fullName || '',\n      biography: profile.biography || '',\n      profile_pic_url: profile.profilePicUrlHD || profile.profilePicUrl || '',\n      followers_count: profile.followersCount || 0,\n      external_url: profile.externalUrl || '',\n      external_url_title: (profile.externalUrls && profile.externalUrls[0]) ? profile.externalUrls[0].title : '',\n      last_synced_at: new Date().toISOString(),\n      updated_at: new Date().toISOString()\n    },\n    latestPosts: profile.latestPosts || [],\n    influencer_id: String(profile.id)\n  }\n}];"
+        "jsCode": "const items = $input.all();\nconst response = items[0].json;\nconst username = $('Loop Over Items').first().json.instagram_username;\n\n// Apify 에러 또는 빈 응답 체크\nif (response.error || response.statusCode >= 400) {\n  return [{ json: { _skip: true, _reason: 'apify_error', _username: username } }];\n}\n\n// Apify responds with an array even for a single profile\nconst profile = Array.isArray(response) ? response[0] : response;\n\n// 프로필 없음 (계정 미존재 또는 조회 실패)\nif (!profile || !profile.id) {\n  return [{ json: { _skip: true, _reason: 'account_not_found', _username: username } }];\n}\n\n// 비공개 계정\nif (profile.private) {\n  return [{ json: { _skip: true, _reason: 'private_account', _username: username } }];\n}\n\n// 팔로워 1만 미만\nif ((profile.followersCount || 0) < 10000) {\n  return [{ json: { _skip: true, _reason: 'insufficient_followers', _username: username } }];\n}\n\n// external_url 없음 (공구 링크 페이지 필수)\nif (!profile.externalUrl) {\n  return [{ json: { _skip: true, _reason: 'no_external_url', _username: username } }];\n}\n\nreturn [{\n  json: {\n    _skip: false,\n    influencer: {\n      id: String(profile.id),\n      username: profile.username || '',\n      full_name: profile.fullName || '',\n      biography: profile.biography || '',\n      profile_pic_url: profile.profilePicUrlHD || profile.profilePicUrl || '',\n      followers_count: profile.followersCount || 0,\n      external_url: profile.externalUrl || '',\n      external_url_title: (profile.externalUrls && profile.externalUrls[0]) ? profile.externalUrls[0].title : '',\n      last_synced_at: new Date().toISOString(),\n      updated_at: new Date().toISOString()\n    },\n    latestPosts: profile.latestPosts || [],\n    influencer_id: String(profile.id)\n  }\n}];"
       },
       "id": "b1000001-0005-4000-8000-000000000005",
       "name": "Profile Mapper",
@@ -88,6 +89,57 @@
         1000,
         0
       ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": ""
+          },
+          "conditions": [
+            {
+              "id": "condition-skip",
+              "leftValue": "={{ $json._skip }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "b1000001-0017-4000-8000-000000000017",
+      "name": "IF - Valid Profile",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1125,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE influencer_suggestions SET status = 'failed', error_reason = '{{ $json._reason }}' WHERE instagram_username = '{{ $json._username }}';",
+        "options": {}
+      },
+      "id": "b1000001-0018-4000-8000-000000000018",
+      "name": "Postgres - Mark Failed Suggestion",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1125,
+        250
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres"
+        }
+      }
     },
     {
       "parameters": {
@@ -101,6 +153,27 @@
       "typeVersion": 2.5,
       "position": [
         1250,
+        0
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COALESCE(json_agg(id), '[]'::json) as existing_ids FROM posts WHERE influencer_id = '{{ $('Profile Mapper').first().json.influencer_id }}'",
+        "options": {}
+      },
+      "id": "b1000001-0016-4000-8000-000000000016",
+      "name": "Postgres - Get Existing Post IDs",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1400,
         0
       ],
       "credentials": {
@@ -155,49 +228,7 @@
     },
     {
       "parameters": {
-        "operation": "executeQuery",
-        "query": "INSERT INTO posts (id, influencer_id, post_url, post_type, caption, display_url, image_urls, hashtags, group_buying_start, group_buying_end, product_name, group_buying_url, posted_at, updated_at)\nVALUES (\n  '{{ $json.id }}',\n  '{{ $json.influencer_id }}',\n  '{{ $json.post_url }}',\n  '{{ $json.post_type }}',\n  '{{ $json.caption }}',\n  '{{ $json.display_url }}',\n  '{{ $json.image_urls_pg }}',\n  '{{ $json.hashtags_pg }}',\n  {{ $json.group_buying_start ? \"'\" + $json.group_buying_start + \"'\" : 'NULL' }},\n  {{ $json.group_buying_end ? \"'\" + $json.group_buying_end + \"'\" : 'NULL' }},\n  {{ $json.product_name ? \"'\" + $json.product_name + \"'\" : 'NULL' }},\n  {{ $json.group_buying_url ? \"'\" + $json.group_buying_url + \"'\" : 'NULL' }},\n  {{ $json.posted_at ? \"'\" + $json.posted_at + \"'\" : 'NULL' }},\n  '{{ $json.updated_at }}'\n)\nON CONFLICT (id) DO UPDATE SET\n  post_url = EXCLUDED.post_url,\n  post_type = EXCLUDED.post_type,\n  caption = EXCLUDED.caption,\n  display_url = EXCLUDED.display_url,\n  image_urls = EXCLUDED.image_urls,\n  hashtags = EXCLUDED.hashtags,\n  group_buying_start = EXCLUDED.group_buying_start,\n  group_buying_end = EXCLUDED.group_buying_end,\n  product_name = EXCLUDED.product_name,\n  group_buying_url = EXCLUDED.group_buying_url,\n  posted_at = EXCLUDED.posted_at,\n  updated_at = EXCLUDED.updated_at;",
-        "options": {}
-      },
-      "id": "b1000001-0009-4000-8000-000000000009",
-      "name": "Postgres - Posts Upsert",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        2850,
-        -150
-      ],
-      "credentials": {
-        "postgres": {
-          "id": "POSTGRES_CREDENTIAL_ID",
-          "name": "Supabase Postgres"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "TRUNCATE TABLE influencer_suggestions;",
-        "options": {}
-      },
-      "id": "b1000001-0010-4000-8000-000000000010",
-      "name": "Postgres - Truncate Suggestions",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.5,
-      "position": [
-        750,
-        300
-      ],
-      "credentials": {
-        "postgres": {
-          "id": "POSTGRES_CREDENTIAL_ID",
-          "name": "Supabase Postgres"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "const items = $input.all();\nconst year = new Date().getFullYear();\n\nreturn items.map(item => {\n  const caption = item.json.caption_raw || '';\n\n  const body = {\n    model: 'claude-haiku-4-5-20251001',\n    max_tokens: 1024,\n    messages: [{\n      role: 'user',\n      content: [\n        '다음 인스타그램 공동구매 게시글 캡션에서 아래 4가지 정보를 추출하여 JSON으로 반환해주세요.',\n        '',\n        '[캡션]',\n        caption,\n        '',\n        '[추출 항목]',\n        '1. group_buying_start: 공구 시작 날짜 (ISO 8601 형식, 예: ' + year + '-02-13T00:00:00Z). 연도 미명시 시 ' + year + '년 가정. 찾을 수 없으면 null.',\n        '2. group_buying_end: 공구 종료 날짜 (ISO 8601 형식). 연도 미명시 시 ' + year + '년 가정. 찾을 수 없으면 null.',\n        '3. product_name: 공동구매 상품명 (여러 개이면 쉼표로 구분). 찾을 수 없으면 null.',\n        '4. group_buying_url: 공동구매 링크 URL. 캡션에 URL이 직접 있으면 그 URL을 반환. 캡션에 \"프로필 링크\", \"프로필 링크 확인\", \"링크는 프로필\", \"프로필에서 확인\", \"프로필 링크 클릭\" 등 프로필의 링크를 참조하라는 문구가 있으면 정확히 \"PROFILE_LINK\"라고 반환. 둘 다 해당하지 않으면 null.',\n        '',\n        '반드시 JSON만 반환하세요. 다른 설명 없이 JSON 객체만 출력하세요.'\n      ].join('\\n')\n    }]\n  };\n\n  return {\n    json: {\n      ...item.json,\n      _claudeBody: JSON.stringify(body)\n    }\n  };\n});"
+        "jsCode": "const items = $input.all();\nconst year = new Date().getFullYear();\n\nreturn items.map(item => {\n  const caption = item.json.caption_raw || '';\n\n  const body = {\n    model: 'claude-haiku-4-5-20251001',\n    max_tokens: 2048,\n    messages: [{\n      role: 'user',\n      content: [\n        '다음 인스타그램 공동구매 게시글 캡션에서 상품 정보를 추출해주세요.',\n        '',\n        '[중요 규칙]',\n        '- 게시글에 상품이 여러 개이면 각 상품을 개별 객체로 분리하세요.',\n        '- 상품마다 공구 일정(시작/종료)이 다를 수 있으니 각각 확인하세요.',\n        '- 상품마다 가격이 다를 수 있으니 각각 확인하세요.',\n        '- 공구 일정이 모든 상품에 공통이면 동일한 값을 각 상품에 넣으세요.',\n        '- product_name은 핵심 상품명만 작성하세요. 용량(ml, g, kg, L), 중량, 수량, 개수 등 스펙 정보는 제외하세요. 예: \"살균 스프레이 소독제 대용량 450ml\" → \"살균 스프레이 소독제\", \"숙성김치(3kg)\" → \"숙성김치\", \"간장게장(1통 2.1kg - 4미)\" → \"간장게장\"',\n        '- 날짜에 시간이 명시되지 않은 경우 반드시 T23:59:59+09:00 (한국 시간)으로 설정하세요. 예: \"3월 8일\" → \"' + year + '-03-08T23:59:59+09:00\". 모든 날짜는 한국 시간(KST, +09:00) 기준입니다.',\n        '',\n        '[캡션]',\n        caption,\n        '',\n        '[추출 항목 - 상품별]',\n        '1. product_name: 상품명. 찾을 수 없으면 null.',\n        '2. price: 공구 가격 (숫자만, 원 단위). 찾을 수 없으면 null.',\n        '3. category: 상품 카테고리. 다음 중 하나만: \"뷰티\", \"푸드\", \"패션\", \"리빙\", \"키즈\", \"가전\", \"여행\", \"반려동물\", \"운동/건강\", \"교육/도서\", \"문구/취미\", \"캠핑/레저\", \"차량용품\". 판단 불가 시 null.',\n        '4. group_buying_start: 공구 시작 날짜 (ISO 8601, 예: ' + year + '-02-13T00:00:00Z). 연도 미명시 시 ' + year + '년 가정. 찾을 수 없으면 null.',\n        '5. group_buying_end: 공구 종료 날짜 (ISO 8601). 연도 미명시 시 ' + year + '년 가정. 찾을 수 없으면 null.',\n        '6. group_buying_url: 공동구매 링크 URL. 캡션에 URL이 직접 있으면 그 URL. \"프로필 링크\", \"링크는 프로필\" 등 프로필 참조 문구가 있으면 \"PROFILE_LINK\". 둘 다 아니면 null.',\n        '',\n        '[반환 형식]',\n        '반드시 아래 형식의 JSON만 반환하세요. 다른 설명 없이 JSON만 출력하세요.',\n        '{ \"products\": [ { \"product_name\": \"...\", \"price\": ..., \"category\": \"...\", \"group_buying_start\": \"...\", \"group_buying_end\": \"...\", \"group_buying_url\": \"...\" } ] }'\n      ].join('\\n')\n    }]\n  };\n\n  return {\n    json: {\n      ...item.json,\n      _claudeBody: JSON.stringify(body)\n    }\n  };\n});"
       },
       "id": "b1000001-0011-4000-8000-000000000011",
       "name": "Prepare Claude Request",
@@ -212,6 +243,8 @@
       "parameters": {
         "method": "POST",
         "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -235,11 +268,17 @@
       "position": [
         2350,
         -150
-      ]
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "HEADER_AUTH_CREDENTIAL_ID",
+          "name": "Header Auth account"
+        }
+      }
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst originalItems = $('Prepare Claude Request').all();\n\nfunction esc(val) {\n  if (val === null || val === undefined) return null;\n  return String(val).replace(/'/g, \"''\");\n}\n\nconst results = [];\nfor (let i = 0; i < items.length; i++) {\n  const claudeResponse = items[i].json;\n  const original = originalItems[i].json;\n\n  let extracted = {\n    group_buying_start: null,\n    group_buying_end: null,\n    product_name: null,\n    group_buying_url: null\n  };\n\n  try {\n    const text = (claudeResponse.content && claudeResponse.content[0] && claudeResponse.content[0].text) || '';\n    const jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      const parsed = JSON.parse(jsonMatch[0]);\n      extracted.group_buying_start = parsed.group_buying_start || null;\n      extracted.group_buying_end = parsed.group_buying_end || null;\n      extracted.product_name = parsed.product_name || null;\n      extracted.group_buying_url = parsed.group_buying_url || null;\n    }\n  } catch (e) {\n    // Claude 응답 파싱 실패 시 null 유지\n  }\n\n  // Fallback: group_buying_start가 없으면 posted_at 사용\n  if (!extracted.group_buying_start && original.posted_at) {\n    extracted.group_buying_start = original.posted_at;\n  }\n\n  // PROFILE_LINK 마커 → 인플루언서 external_url로 대체\n  if (extracted.group_buying_url === 'PROFILE_LINK' && original.external_url) {\n    extracted.group_buying_url = original.external_url;\n  } else if (extracted.group_buying_url === 'PROFILE_LINK') {\n    extracted.group_buying_url = null;\n  }\n\n  results.push({\n    json: {\n      id: original.id,\n      influencer_id: original.influencer_id,\n      post_url: original.post_url,\n      post_type: original.post_type,\n      caption: original.caption,\n      display_url: original.display_url,\n      image_urls_pg: original.image_urls_pg,\n      hashtags_pg: original.hashtags_pg,\n      group_buying_start: extracted.group_buying_start,\n      group_buying_end: extracted.group_buying_end,\n      product_name: esc(extracted.product_name),\n      group_buying_url: extracted.group_buying_url,\n      posted_at: original.posted_at,\n      updated_at: original.updated_at\n    }\n  });\n}\n\nreturn results;"
+        "jsCode": "const items = $input.all();\nconst originalItems = $('Prepare Claude Request').all();\n\nfunction esc(val) {\n  if (val === null || val === undefined) return null;\n  return String(val).replace(/'/g, \"''\");\n}\n\nconst results = [];\nfor (let i = 0; i < items.length; i++) {\n  const claudeResponse = items[i].json;\n  const original = originalItems[i].json;\n\n  let products = [];\n\n  try {\n    const text = (claudeResponse.content && claudeResponse.content[0] && claudeResponse.content[0].text) || '';\n    const jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      const parsed = JSON.parse(jsonMatch[0]);\n      if (parsed.products && Array.isArray(parsed.products)) {\n        products = parsed.products;\n      } else {\n        products = [parsed];\n      }\n    }\n  } catch (e) {\n    continue;\n  }\n\n  for (let p = 0; p < products.length; p++) {\n    const prod = products[p];\n    const start = prod.group_buying_start || null;\n    const end = prod.group_buying_end || null;\n\n    if (!start || !end) continue;\n\n    let url = prod.group_buying_url || null;\n    if (url === 'PROFILE_LINK' && original.external_url) {\n      url = original.external_url;\n    } else if (url === 'PROFILE_LINK') {\n      url = null;\n    }\n\n    const postId = products.length > 1 ? original.id + '_p' + p : original.id;\n\n    results.push({\n      json: {\n        id: postId,\n        influencer_id: original.influencer_id,\n        post_url: original.post_url,\n        post_type: original.post_type,\n        caption: original.caption,\n        display_url: original.display_url,\n        image_urls_pg: null,\n        hashtags_pg: original.hashtags_pg,\n        group_buying_start: start,\n        group_buying_end: end,\n        product_name: esc(prod.product_name || null),\n        group_buying_url: url,\n        price: prod.price || null,\n        category: prod.category || null,\n        posted_at: original.posted_at,\n        updated_at: original.updated_at\n      }\n    });\n  }\n}\n\nreturn results;"
       },
       "id": "b1000001-0013-4000-8000-000000000013",
       "name": "Merge Claude Response",
@@ -251,29 +290,18 @@
       ]
     },
     {
-      "parameters": {},
-      "id": "b1000001-0014-4000-8000-000000000014",
-      "name": "Sync All Trigger",
-      "type": "n8n-nodes-base.manualTrigger",
-      "typeVersion": 1,
-      "position": [
-        0,
-        -300
-      ]
-    },
-    {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT username AS instagram_username FROM influencers;",
+        "query": "INSERT INTO posts (id, influencer_id, post_url, post_type, caption, display_url, image_urls, hashtags, group_buying_start, group_buying_end, product_name, group_buying_url, posted_at, updated_at, price, category)\nSELECT\n  '{{ $json.id }}',\n  '{{ $json.influencer_id }}',\n  '{{ $json.post_url }}',\n  '{{ $json.post_type }}',\n  '{{ $json.caption }}',\n  '{{ $json.display_url }}',\n  NULL,\n  '{{ $json.hashtags_pg }}',\n  {{ $json.group_buying_start ? \"'\" + $json.group_buying_start + \"'\" : 'NULL' }},\n  {{ $json.group_buying_end ? \"'\" + $json.group_buying_end + \"'\" : 'NULL' }},\n  {{ $json.product_name ? \"'\" + $json.product_name + \"'\" : 'NULL' }},\n  {{ $json.group_buying_url ? \"'\" + $json.group_buying_url + \"'\" : 'NULL' }},\n  {{ $json.posted_at ? \"'\" + $json.posted_at + \"'\" : 'NULL' }},\n  '{{ $json.updated_at }}',\n  {{ $json.price ? $json.price : 'NULL' }},\n  {{ $json.category ? \"'\" + $json.category + \"'\" : 'NULL' }}\nWHERE NOT EXISTS (\n  SELECT 1 FROM posts\n  WHERE influencer_id = '{{ $json.influencer_id }}'\n  AND product_name = {{ $json.product_name ? \"'\" + $json.product_name + \"'\" : 'NULL' }}\n  AND group_buying_start = {{ $json.group_buying_start ? \"'\" + $json.group_buying_start + \"'\" : 'NULL' }}\n  AND group_buying_end = {{ $json.group_buying_end ? \"'\" + $json.group_buying_end + \"'\" : 'NULL' }}\n  AND id != '{{ $json.id }}'\n)\nON CONFLICT (id) DO UPDATE SET\n  post_url = EXCLUDED.post_url,\n  post_type = EXCLUDED.post_type,\n  caption = EXCLUDED.caption,\n  display_url = EXCLUDED.display_url,\n  image_urls = NULL,\n  hashtags = EXCLUDED.hashtags,\n  group_buying_start = EXCLUDED.group_buying_start,\n  group_buying_end = EXCLUDED.group_buying_end,\n  product_name = EXCLUDED.product_name,\n  group_buying_url = EXCLUDED.group_buying_url,\n  posted_at = EXCLUDED.posted_at,\n  updated_at = EXCLUDED.updated_at,\n  price = EXCLUDED.price,\n  category = EXCLUDED.category;",
         "options": {}
       },
-      "id": "b1000001-0015-4000-8000-000000000015",
-      "name": "Postgres - Get All Influencers",
+      "id": "b1000001-0009-4000-8000-000000000009",
+      "name": "Postgres - Posts Upsert",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        250,
-        -300
+        2850,
+        -150
       ],
       "credentials": {
         "postgres": {
@@ -285,16 +313,16 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT COALESCE(json_agg(id), '[]'::json) as existing_ids FROM posts WHERE influencer_id = '{{ $('Profile Mapper').first().json.influencer_id }}'",
+        "query": "UPDATE influencer_suggestions SET status = 'completed' WHERE status = 'processing';",
         "options": {}
       },
-      "id": "b1000001-0016-4000-8000-000000000016",
-      "name": "Postgres - Get Existing Post IDs",
+      "id": "b1000001-0010-4000-8000-000000000010",
+      "name": "Postgres - Complete Suggestions",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        1400,
-        0
+        750,
+        300
       ],
       "credentials": {
         "postgres": {
@@ -327,33 +355,11 @@
         ]
       ]
     },
-    "Sync All Trigger": {
-      "main": [
-        [
-          {
-            "node": "Postgres - Get All Influencers",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Postgres - Get All Influencers": {
-      "main": [
-        [
-          {
-            "node": "Loop Over Items",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Loop Over Items": {
       "main": [
         [
           {
-            "node": "Postgres - Truncate Suggestions",
+            "node": "Postgres - Complete Suggestions",
             "type": "main",
             "index": 0
           }
@@ -382,7 +388,36 @@
       "main": [
         [
           {
+            "node": "IF - Valid Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Valid Profile": {
+      "main": [
+        [
+          {
+            "node": "Postgres - Mark Failed Suggestion",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Postgres - Influencers Upsert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres - Mark Failed Suggestion": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
             "type": "main",
             "index": 0
           }
