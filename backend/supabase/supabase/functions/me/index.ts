@@ -1,6 +1,11 @@
 import { corsHeaders } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { createSupabaseClient, requireAuth } from "../_shared/auth.ts";
+import {
+  isTempUrl,
+  extractFileName,
+  moveFile,
+} from "../_shared/storage.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -77,6 +82,26 @@ async function handlePut(req: Request, supabase: Parameters<typeof requireAuth>[
 
   if (Object.keys(updates).length === 0) {
     return errorResponse("no_fields_to_update", "nickname or profile_url required", 400);
+  }
+
+  // profile_url이 temp URL이면 users/{user_id}/ 로 이동
+  if (
+    typeof updates.profile_url === "string" &&
+    isTempUrl(updates.profile_url)
+  ) {
+    const fileName = extractFileName(updates.profile_url as string);
+    if (fileName) {
+      const ext = fileName.split(".").pop() ?? "jpg";
+      try {
+        const newUrl = await moveFile(
+          `temp/${fileName}`,
+          `users/${authUser.id}/profile.${ext}`
+        );
+        updates.profile_url = newUrl;
+      } catch {
+        // move 실패 시 temp URL 그대로 저장 (fallback)
+      }
+    }
   }
 
   const { data, error } = await supabase
