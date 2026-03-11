@@ -353,6 +353,12 @@ allow_dynamic_registration = false
 [functions.me]
 verify_jwt = false
 
+[functions.posts]
+verify_jwt = false
+
+[functions.influencers]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

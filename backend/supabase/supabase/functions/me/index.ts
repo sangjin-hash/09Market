@@ -1,49 +1,53 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders } from "../_shared/cors.ts";
+import { jsonResponse, errorResponse } from "../_shared/response.ts";
+import { createSupabaseClient, requireAuth } from "../_shared/auth.ts";
 
-/**
- * GET /me
- *
- * Authorization 헤더의 JWT로 사용자를 식별하고 프로필을 조회한다.
- *
- * Response:
- *   200: { id, nickname, profile_url, provider, ... }  — 소셜 로그인 유저
- *   204: (empty body)                                   — 익명 유저 (프로필 없음)
- *   401: 토큰 없음 또는 유효하지 않음
- *   405: GET 이외의 메서드
- *   500: 서버 에러
- */
 Deno.serve(async (req) => {
-  if (req.method !== "GET") {
-    return jsonResponse({ error: "Method not allowed" }, 405);
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
   }
 
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) {
-    return jsonResponse({ error: "Missing authorization header" }, 401);
+  try {
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const supabase = createSupabaseClient(authHeader);
+
+    switch (req.method) {
+      case "GET":
+        return await handleGet(supabase);
+      case "PUT":
+        return await handlePut(req, supabase);
+      default:
+        return errorResponse("method_not_allowed", "Method not allowed", 405);
+    }
+  } catch (e) {
+    if (e && typeof e === "object" && "status" in e) {
+      return errorResponse(
+        (e as Record<string, unknown>).error as string,
+        (e as Record<string, unknown>).message as string,
+        (e as Record<string, unknown>).status as number
+      );
+    }
+    return errorResponse("internal_error", String(e), 500);
   }
+});
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-    { global: { headers: { Authorization: authHeader } } }
-  );
+// ─── GET /me ───
 
-  // JWT 검증 및 사용자 식별
+async function handleGet(supabase: Parameters<typeof requireAuth>[0]): Promise<Response> {
   const {
     data: { user: authUser },
     error: authError,
   } = await supabase.auth.getUser();
 
   if (authError || !authUser) {
-    return jsonResponse({ error: "Invalid or expired token" }, 401);
+    return errorResponse("unauthorized", "Invalid or expired token", 401);
   }
 
-  // 익명 유저는 users 테이블에 row가 없으므로 204 No Content
+  // 익명 유저는 users 테이블에 row가 없으므로 204
   if (authUser.is_anonymous) {
-    return new Response(null, { status: 204 });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  // 소셜 유저: users 테이블에서 프로필 조회
   const { data, error } = await supabase
     .from("users")
     .select("id, nickname, profile_url, provider, created_at")
@@ -51,19 +55,40 @@ Deno.serve(async (req) => {
     .single();
 
   if (error) {
-    // 소셜 유저인데 row가 없는 경우 (트리거 실패 등 비정상)
     if (error.code === "PGRST116") {
-      return new Response(null, { status: 204 });
+      return new Response(null, { status: 204, headers: corsHeaders });
     }
-    return jsonResponse({ error: error.message }, 500);
+    return errorResponse("internal_error", error.message, 500);
   }
 
   return jsonResponse(data, 200);
-});
+}
 
-function jsonResponse(body: unknown, status: number): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
+// ─── PUT /me ───
+
+async function handlePut(req: Request, supabase: Parameters<typeof requireAuth>[0]): Promise<Response> {
+  const authUser = await requireAuth(supabase);
+
+  const body = await req.json();
+  const updates: Record<string, unknown> = {};
+
+  if (body.nickname !== undefined) updates.nickname = body.nickname;
+  if (body.profile_url !== undefined) updates.profile_url = body.profile_url;
+
+  if (Object.keys(updates).length === 0) {
+    return errorResponse("no_fields_to_update", "nickname or profile_url required", 400);
+  }
+
+  const { data, error } = await supabase
+    .from("users")
+    .update(updates)
+    .eq("id", authUser.id)
+    .select()
+    .single();
+
+  if (error) {
+    return errorResponse("update_error", error.message, 500);
+  }
+
+  return jsonResponse(data, 200);
 }

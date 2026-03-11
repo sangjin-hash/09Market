@@ -41,6 +41,7 @@ public final class AuthRepositoryImpl: AuthRepository {
             nonce: nonce
         )
         
+        try self.localDataSource.clearTokens()
         try self.localDataSource.saveTokens(accessToken: response.accessToken, refreshToken: response.refreshToken)
         try self.localDataSource.saveAnonymousFlag(false)
         return AuthMapper.toAuthTokenEntity(response)
