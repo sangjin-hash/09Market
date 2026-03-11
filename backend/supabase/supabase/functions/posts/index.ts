@@ -2,6 +2,11 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { createSupabaseClient, requireAuth } from "../_shared/auth.ts";
 import { requireFields, parseIntParam } from "../_shared/validation.ts";
+import {
+  isTempUrl,
+  extractFileName,
+  moveFile,
+} from "../_shared/storage.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -256,11 +261,13 @@ async function handleCreate(req: Request): Response | Promise<Response> {
   }
 
   const instagramUrl = `https://www.instagram.com/${influencer.username}`;
+  const postId = crypto.randomUUID();
 
+  // 1단계: temp URL 그대로 INSERT
   const { data, error } = await supabase
     .from("posts")
     .insert({
-      id: crypto.randomUUID(),
+      id: postId,
       influencer_id: body.influencer_id,
       product_name: body.product_name,
       price: body.price,
@@ -278,6 +285,44 @@ async function handleCreate(req: Request): Response | Promise<Response> {
 
   if (error) {
     return errorResponse("insert_error", error.message, 500);
+  }
+
+  // 2단계: temp URL → posts/{post_id}/ 로 이동
+  const imageUrls: string[] | null = data.image_urls;
+  if (imageUrls && imageUrls.length > 0) {
+    const movedUrls: string[] = [];
+
+    for (const url of imageUrls) {
+      if (isTempUrl(url)) {
+        const fileName = extractFileName(url);
+        if (fileName) {
+          try {
+            const newUrl = await moveFile(
+              `temp/${fileName}`,
+              `posts/${postId}/${fileName}`
+            );
+            movedUrls.push(newUrl);
+          } catch {
+            // move 실패 시 temp URL 유지 (fallback)
+            movedUrls.push(url);
+          }
+        } else {
+          movedUrls.push(url);
+        }
+      } else {
+        movedUrls.push(url);
+      }
+    }
+
+    // URL이 변경된 경우에만 UPDATE
+    if (movedUrls.some((u, i) => u !== imageUrls[i])) {
+      await supabase
+        .from("posts")
+        .update({ image_urls: movedUrls })
+        .eq("id", postId);
+
+      data.image_urls = movedUrls;
+    }
   }
 
   return jsonResponse(data, 201);
