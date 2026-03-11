@@ -258,7 +258,13 @@
         "specifyBody": "json",
         "jsonBody": "={{ $json._claudeBody }}",
         "options": {
-          "timeout": 60000
+          "timeout": 60000,
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 2000
+            }
+          }
         }
       },
       "id": "b1000001-0012-4000-8000-000000000012",
@@ -269,6 +275,9 @@
         2350,
         -150
       ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
       "credentials": {
         "httpHeaderAuth": {
           "id": "HEADER_AUTH_CREDENTIAL_ID",
@@ -278,7 +287,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst originalItems = $('Prepare Claude Request').all();\n\nfunction esc(val) {\n  if (val === null || val === undefined) return null;\n  return String(val).replace(/'/g, \"''\");\n}\n\nconst results = [];\nfor (let i = 0; i < items.length; i++) {\n  const claudeResponse = items[i].json;\n  const original = originalItems[i].json;\n\n  let products = [];\n\n  try {\n    const text = (claudeResponse.content && claudeResponse.content[0] && claudeResponse.content[0].text) || '';\n    const jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      const parsed = JSON.parse(jsonMatch[0]);\n      if (parsed.products && Array.isArray(parsed.products)) {\n        products = parsed.products;\n      } else {\n        products = [parsed];\n      }\n    }\n  } catch (e) {\n    continue;\n  }\n\n  for (let p = 0; p < products.length; p++) {\n    const prod = products[p];\n    const start = prod.group_buying_start || null;\n    const end = prod.group_buying_end || null;\n\n    if (!start || !end) continue;\n\n    let url = prod.group_buying_url || null;\n    if (url === 'PROFILE_LINK' && original.external_url) {\n      url = original.external_url;\n    } else if (url === 'PROFILE_LINK') {\n      url = null;\n    }\n\n    const postId = products.length > 1 ? original.id + '_p' + p : original.id;\n\n    results.push({\n      json: {\n        id: postId,\n        influencer_id: original.influencer_id,\n        post_url: original.post_url,\n        post_type: original.post_type,\n        caption: original.caption,\n        display_url: original.display_url,\n        image_urls_pg: null,\n        hashtags_pg: original.hashtags_pg,\n        group_buying_start: start,\n        group_buying_end: end,\n        product_name: esc(prod.product_name || null),\n        group_buying_url: url,\n        price: prod.price || null,\n        category: prod.category || null,\n        posted_at: original.posted_at,\n        updated_at: original.updated_at\n      }\n    });\n  }\n}\n\nreturn results;"
+        "jsCode": "const items = $input.all();\nconst originalItems = $('Prepare Claude Request').all();\n\nfunction esc(val) {\n  if (val === null || val === undefined) return null;\n  return String(val).replace(/'/g, \"''\");\n}\n\nfunction dedupId(influencerId, productName, start, end) {\n  const key = `${influencerId}:${productName}:${start}:${end}`;\n  let h = 0;\n  for (let i = 0; i < key.length; i++) {\n    h = ((h << 5) - h + key.charCodeAt(i)) | 0;\n  }\n  return influencerId + '_' + Math.abs(h).toString(36);\n}\n\nconst results = [];\nfor (let i = 0; i < items.length; i++) {\n  const claudeResponse = items[i].json;\n  const original = originalItems[i].json;\n\n  let products = [];\n\n  try {\n    const text = (claudeResponse.content && claudeResponse.content[0] && claudeResponse.content[0].text) || '';\n    const jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      const parsed = JSON.parse(jsonMatch[0]);\n      if (parsed.products && Array.isArray(parsed.products)) {\n        products = parsed.products;\n      } else {\n        products = [parsed];\n      }\n    }\n  } catch (e) {\n    continue;\n  }\n\n  for (let p = 0; p < products.length; p++) {\n    const prod = products[p];\n    const start = prod.group_buying_start || null;\n    const end = prod.group_buying_end || null;\n\n    if (!start || !end) continue;\n\n    let url = prod.group_buying_url || null;\n    if (url === 'PROFILE_LINK' && original.external_url) {\n      url = original.external_url;\n    } else if (url === 'PROFILE_LINK') {\n      url = null;\n    }\n\n    const productName = esc(prod.product_name || null);\n    const postId = dedupId(original.influencer_id, productName, start, end);\n\n    results.push({\n      json: {\n        id: postId,\n        influencer_id: original.influencer_id,\n        post_url: original.post_url,\n        post_type: original.post_type,\n        caption: original.caption,\n        display_url: original.display_url,\n        image_urls_pg: null,\n        hashtags_pg: original.hashtags_pg,\n        group_buying_start: start,\n        group_buying_end: end,\n        product_name: productName,\n        group_buying_url: url,\n        price: prod.price || null,\n        category: prod.category || null,\n        posted_at: original.posted_at,\n        updated_at: original.updated_at\n      }\n    });\n  }\n}\n\nif (results.length === 0) {\n  return [{ json: { _noResults: true } }];\n}\nreturn results;"
       },
       "id": "b1000001-0013-4000-8000-000000000013",
       "name": "Merge Claude Response",
@@ -292,16 +301,50 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO posts (id, influencer_id, post_url, post_type, caption, display_url, image_urls, hashtags, group_buying_start, group_buying_end, product_name, group_buying_url, posted_at, updated_at, price, category)\nSELECT\n  '{{ $json.id }}',\n  '{{ $json.influencer_id }}',\n  '{{ $json.post_url }}',\n  '{{ $json.post_type }}',\n  '{{ $json.caption }}',\n  '{{ $json.display_url }}',\n  NULL,\n  '{{ $json.hashtags_pg }}',\n  {{ $json.group_buying_start ? \"'\" + $json.group_buying_start + \"'\" : 'NULL' }},\n  {{ $json.group_buying_end ? \"'\" + $json.group_buying_end + \"'\" : 'NULL' }},\n  {{ $json.product_name ? \"'\" + $json.product_name + \"'\" : 'NULL' }},\n  {{ $json.group_buying_url ? \"'\" + $json.group_buying_url + \"'\" : 'NULL' }},\n  {{ $json.posted_at ? \"'\" + $json.posted_at + \"'\" : 'NULL' }},\n  '{{ $json.updated_at }}',\n  {{ $json.price ? $json.price : 'NULL' }},\n  {{ $json.category ? \"'\" + $json.category + \"'\" : 'NULL' }}\nWHERE NOT EXISTS (\n  SELECT 1 FROM posts\n  WHERE influencer_id = '{{ $json.influencer_id }}'\n  AND product_name = {{ $json.product_name ? \"'\" + $json.product_name + \"'\" : 'NULL' }}\n  AND group_buying_start = {{ $json.group_buying_start ? \"'\" + $json.group_buying_start + \"'\" : 'NULL' }}\n  AND group_buying_end = {{ $json.group_buying_end ? \"'\" + $json.group_buying_end + \"'\" : 'NULL' }}\n  AND id != '{{ $json.id }}'\n)\nON CONFLICT (id) DO UPDATE SET\n  post_url = EXCLUDED.post_url,\n  post_type = EXCLUDED.post_type,\n  caption = EXCLUDED.caption,\n  display_url = EXCLUDED.display_url,\n  image_urls = NULL,\n  hashtags = EXCLUDED.hashtags,\n  group_buying_start = EXCLUDED.group_buying_start,\n  group_buying_end = EXCLUDED.group_buying_end,\n  product_name = EXCLUDED.product_name,\n  group_buying_url = EXCLUDED.group_buying_url,\n  posted_at = EXCLUDED.posted_at,\n  updated_at = EXCLUDED.updated_at,\n  price = EXCLUDED.price,\n  category = EXCLUDED.category;",
+        "query": "INSERT INTO posts (id, influencer_id, post_url, post_type, caption, display_url, image_urls, hashtags, group_buying_start, group_buying_end, product_name, group_buying_url, posted_at, updated_at, price, category)\nVALUES (\n  '{{ $json.id }}',\n  '{{ $json.influencer_id }}',\n  '{{ $json.post_url }}',\n  '{{ $json.post_type }}',\n  '{{ $json.caption }}',\n  '{{ $json.display_url }}',\n  NULL,\n  '{{ $json.hashtags_pg }}',\n  {{ $json.group_buying_start ? \"'\" + $json.group_buying_start + \"'\" : 'NULL' }},\n  {{ $json.group_buying_end ? \"'\" + $json.group_buying_end + \"'\" : 'NULL' }},\n  {{ $json.product_name ? \"'\" + $json.product_name + \"'\" : 'NULL' }},\n  {{ $json.group_buying_url ? \"'\" + $json.group_buying_url + \"'\" : 'NULL' }},\n  {{ $json.posted_at ? \"'\" + $json.posted_at + \"'\" : 'NULL' }},\n  '{{ $json.updated_at }}',\n  {{ $json.price ? $json.price : 'NULL' }},\n  {{ $json.category ? \"'\" + $json.category + \"'\" : 'NULL' }}\n)\nON CONFLICT DO NOTHING;",
         "options": {}
       },
       "id": "b1000001-0009-4000-8000-000000000009",
-      "name": "Postgres - Posts Upsert",
+      "name": "Postgres - Posts Insert",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        2850,
-        -150
+        3000,
+        -250
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { done: true } }];"
+      },
+      "id": "b1000001-0014-4000-8000-000000000014",
+      "name": "Reduce to One",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3250,
+        -250
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE influencer_suggestions SET status = 'completed' WHERE instagram_username = '{{ $('Loop Over Items').first().json.instagram_username }}' AND status = 'processing';",
+        "options": {}
+      },
+      "id": "b1000001-0015-4000-8000-000000000015",
+      "name": "Mark Done - No Posts",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1850,
+        200
       ],
       "credentials": {
         "postgres": {
@@ -313,16 +356,67 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "UPDATE influencer_suggestions SET status = 'completed' WHERE status = 'processing';",
+        "query": "UPDATE influencer_suggestions SET status = 'completed' WHERE instagram_username = '{{ $('Loop Over Items').first().json.instagram_username }}' AND status = 'processing';",
         "options": {}
       },
-      "id": "b1000001-0010-4000-8000-000000000010",
-      "name": "Postgres - Complete Suggestions",
+      "id": "b1000001-0019-4000-8000-000000000019",
+      "name": "Mark Done - Posts Done",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        750,
-        300
+        3500,
+        -250
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Supabase Postgres"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": ""
+          },
+          "conditions": [
+            {
+              "id": "condition-no-results",
+              "leftValue": "={{ $json._noResults }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "b1000001-0020-4000-8000-000000000020",
+      "name": "IF - Has Claude Results",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2800,
+        -150
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE influencer_suggestions SET status = 'completed' WHERE instagram_username = '{{ $('Loop Over Items').first().json.instagram_username }}' AND status = 'processing';",
+        "options": {}
+      },
+      "id": "b1000001-0021-4000-8000-000000000021",
+      "name": "Mark Done - No Results",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2800,
+        50
       ],
       "credentials": {
         "postgres": {
@@ -357,13 +451,7 @@
     },
     "Loop Over Items": {
       "main": [
-        [
-          {
-            "node": "Postgres - Complete Suggestions",
-            "type": "main",
-            "index": 0
-          }
-        ],
+        [],
         [
           {
             "node": "HTTP Request - Apify",
@@ -461,7 +549,7 @@
       "main": [
         [
           {
-            "node": "Loop Over Items",
+            "node": "Mark Done - No Posts",
             "type": "main",
             "index": 0
           }
@@ -501,14 +589,76 @@
       "main": [
         [
           {
-            "node": "Postgres - Posts Upsert",
+            "node": "IF - Has Claude Results",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Postgres - Posts Upsert": {
+    "IF - Has Claude Results": {
+      "main": [
+        [
+          {
+            "node": "Mark Done - No Results",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Postgres - Posts Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Done - No Results": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres - Posts Insert": {
+      "main": [
+        [
+          {
+            "node": "Reduce to One",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reduce to One": {
+      "main": [
+        [
+          {
+            "node": "Mark Done - Posts Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Done - No Posts": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Done - Posts Done": {
       "main": [
         [
           {
