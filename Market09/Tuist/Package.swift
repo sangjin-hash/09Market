@@ -24,5 +24,8 @@ let package = Package(
         .package(url: "https://github.com/RxSwiftCommunity/RxDataSources", from: "5.0.0"),
         .package(url: "https://github.com/google/GoogleSignIn-iOS", from: "8.0.0"),
         .package(url: "https://github.com/devxoul/Pure", from: "1.1.0"),
+        .package(url: "https://github.com/layoutBox/FlexLayout", from: "2.0.0"),
+        .package(url: "https://github.com/layoutBox/PinLayout", from: "1.10.0"),
+        .package(url: "https://github.com/SnapKit/SnapKit", from: "5.7.0"),
     ]
 )
