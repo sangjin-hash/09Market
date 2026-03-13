@@ -29,7 +29,7 @@ public final class SignInWithIdTokenUseCaseImpl: SignInWithIdTokenUseCase {
             idToken: idToken,
             nonce: nonce
         )
-        if let user = try await self.userRepository.getMe() {
+        if let user = try await self.userRepository.fetchMe() {
             self.userStore.setUser(user)
         }
         return token

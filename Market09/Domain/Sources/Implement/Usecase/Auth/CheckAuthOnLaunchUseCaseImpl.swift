@@ -33,7 +33,7 @@ public final class CheckAuthOnLaunchUseCaseImpl: CheckAuthOnLaunchUseCase {
 
         // 2. 토큰 있음 → GET /me (인터셉터가 토큰 주입 + 401 리프레시)
         do {
-            if let user = try await self.userRepository.getMe() {
+            if let user = try await self.userRepository.fetchMe() {
                 self.userStore.setUser(user)
                 return .authenticated(user)
             } else {

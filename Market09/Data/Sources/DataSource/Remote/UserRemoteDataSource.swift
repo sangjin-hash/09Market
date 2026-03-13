@@ -12,7 +12,7 @@ import Core
 protocol UserRemoteDataSource {
     /// GET /me — 유저  조회
     /// - Returns: 소셜 유저면 User, 익명 로그인이면 nil
-    func getMe() async throws -> UserResponse?
+    func fetchMe() async throws -> UserResponse?
 }
 
 final class UserRemoteDataSourceImpl: UserRemoteDataSource {
@@ -22,11 +22,9 @@ final class UserRemoteDataSourceImpl: UserRemoteDataSource {
         self.apiClient = apiClient
     }
 
-    func getMe() async throws -> UserResponse? {
+    func fetchMe() async throws -> UserResponse? {
         return try await performRequest {
-            guard let endpoint = Bundle.main.infoDictionary?["API_ME"] as? String else {
-                fatalError("API_ME가 Info.plist에 없습니다. Secrets.xcconfig을 확인하세요.")
-            }
+            let endpoint = self.postsEndpoint()
             let data = try await self.apiClient.get(endpoint)
 
             if data.isEmpty { return nil }
@@ -36,8 +34,12 @@ final class UserRemoteDataSourceImpl: UserRemoteDataSource {
 }
 
 extension UserRemoteDataSourceImpl {
-    
-    // MARK: - Private
+    private func postsEndpoint() -> String {
+        guard let endpoint = Bundle.main.infoDictionary?["API_ME"] as? String else {
+            fatalError("API_POST가 Info.plist에 없습니다. Secrets.xcconfig을 확인하세요.")
+        }
+        return endpoint
+    }
 
     @discardableResult
     private func performRequest<T>(_ operation: () async throws -> T) async throws -> T {

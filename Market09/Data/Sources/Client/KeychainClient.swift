@@ -7,8 +7,6 @@
 
 import Foundation
 
-import Core
-
 enum Constants {
     static let bundleId = "com.ios.market09"
 
