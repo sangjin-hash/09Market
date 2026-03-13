@@ -21,7 +21,8 @@ let project = Project(
             sources: ["Sources/**"],
             dependencies: [
                 .external(name: "SnapKit"),
-                .external(name: "FlexLayout")
+                .external(name: "FlexLayout"),
+                .external(name: "PinLayout")
             ]
         ),
     ]

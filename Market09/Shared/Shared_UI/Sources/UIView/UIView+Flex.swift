@@ -23,8 +23,10 @@ extension UIView {
 
     /// PinLayout + FlexLayout 조합으로 레이아웃 수행
     /// viewDidLayoutSubviews() 에서 호출
-    public func flexLayout(to guide: UILayoutGuide) {
-        self.pin.all(guide)
+    public func flexLayout(pinToSuperView: Bool = true) {
+        if pinToSuperView {
+            self.pin.all()
+        }
         self.flex.layout()
     }
 
