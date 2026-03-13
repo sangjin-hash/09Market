@@ -13,6 +13,7 @@ import Core
 
 public protocol APIClient {
     func get(_ endpoint: String) async throws -> Data
+    func get(_ endpoint: String, queryItems: [URLQueryItem]) async throws -> Data
     func post(_ endpoint: String, body: Data?) async throws -> Data
     func put(_ endpoint: String, body: Data?) async throws -> Data
     func delete(_ endpoint: String) async throws -> Void
@@ -45,6 +46,10 @@ final class APIClientImpl: APIClient, @unchecked Sendable {
         return try await request(endpoint: endpoint, method: "GET")
     }
 
+    func get(_ endpoint: String, queryItems: [URLQueryItem]) async throws -> Data {
+        return try await request(endpoint: endpoint, method: "GET", queryItems: queryItems)
+    }
+
     func post(_ endpoint: String, body: Data?) async throws -> Data {
         return try await request(endpoint: endpoint, method: "POST", body: body)
     }
@@ -67,10 +72,19 @@ final class APIClientImpl: APIClient, @unchecked Sendable {
     private func request(
         endpoint: String,
         method: String,
+        queryItems: [URLQueryItem] = [],
         body: Data? = nil
     ) async throws -> Data {
         let urlString = self.baseURL + endpoint
-        guard let url = URL(string: urlString) else {
+        guard var components = URLComponents(string: urlString) else {
+            throw AppError.network(.invalidResponse)
+        }
+
+        if !queryItems.isEmpty {
+            components.queryItems = queryItems
+        }
+
+        guard let url = components.url else {
             throw AppError.network(.invalidResponse)
         }
 

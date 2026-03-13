@@ -1,0 +1,34 @@
+//
+//  FetchPostsListUseCaseImpl.swift
+//  DomainImpl
+//
+//  Created by Sangjin Lee
+//
+
+import Domain
+
+public final class FetchPostsListUseCaseImpl: FetchPostsListUseCase {
+    private let postRepository: PostRepository
+
+    public init(postRepository: PostRepository) {
+        self.postRepository = postRepository
+    }
+
+    public func execute(
+        page: Int,
+        limit: Int,
+        search: String?,
+        category: String?,
+        dateFrom: String?,
+        dateTo: String?
+    ) async throws -> Page<Post> {
+        return try await self.postRepository.fetchPostsList(
+            page: page,
+            limit: limit,
+            search: search,
+            category: category,
+            dateFrom: dateFrom,
+            dateTo: dateTo
+        )
+    }
+}

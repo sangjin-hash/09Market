@@ -23,6 +23,14 @@ public final class DomainAssembly: Assembly {
 
         // MARK: - Auth
 
+        container.register(CheckAuthOnLaunchUseCase.self) { r in
+            CheckAuthOnLaunchUseCaseImpl(
+                authRepository: r.resolve(),
+                userRepository: r.resolve(),
+                userStore: r.resolve()
+            )
+        }.inObjectScope(.container)
+        
         container.register(SignInWithIdTokenUseCase.self) { r in
             SignInWithIdTokenUseCaseImpl(
                 authRepository: r.resolve(),
@@ -48,16 +56,19 @@ public final class DomainAssembly: Assembly {
 
         // MARK: - User
 
-        container.register(GetMeUseCase.self) { r in
-            GetMeUseCaseImpl(userRepository: r.resolve())
+        container.register(FetchMeUseCase.self) { r in
+            FetchMeUseCaseImpl(userRepository: r.resolve())
         }.inObjectScope(.container)
 
-        container.register(CheckAuthOnLaunchUseCase.self) { r in
-            CheckAuthOnLaunchUseCaseImpl(
-                authRepository: r.resolve(),
-                userRepository: r.resolve(),
-                userStore: r.resolve()
-            )
+        
+        // MARK: - Post
+        
+        container.register(FetchPostsListUseCase.self) { r in
+            FetchPostsListUseCaseImpl(postRepository: r.resolve())
+        }.inObjectScope(.container)
+        
+        container.register(FetchTop10PostsUseCase.self) { r in
+            FetchTop10PostsUseCaseImpl(postRepository: r.resolve())
         }.inObjectScope(.container)
     }
 }

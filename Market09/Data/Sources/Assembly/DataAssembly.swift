@@ -78,5 +78,16 @@ public final class DataAssembly: Assembly {
         container.register(UserRepository.self) { r in
             UserRepositoryImpl(remoteDataSource: r.resolve())
         }.inObjectScope(.container)
+        
+        
+        // MARK: - Post
+        
+        container.register(PostRemoteDataSource.self) { r in
+            PostRemoteDataSourceImpl(apiClient: r.resolve())
+        }.inObjectScope(.container)
+        
+        container.register(PostRepository.self) { r in
+            PostRepositoryImpl(remoteDataSource: r.resolve())
+        }.inObjectScope(.container)
     }
 }
