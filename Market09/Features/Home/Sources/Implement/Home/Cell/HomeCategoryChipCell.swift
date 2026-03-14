@@ -1,5 +1,5 @@
 //
-//  CategoryChipCell.swift
+//  HomeCategoryChipCell.swift
 //  Home
 //
 //  Created by Sangjin Lee
@@ -11,12 +11,12 @@ import Domain
 import Shared_DI
 import Shared_UI
 
-final class CategoryChipCell: UICollectionViewCell, ConfiguratorModule {
+final class HomeCategoryChipCell: UICollectionViewCell, ConfiguratorModule {
 
     struct Dependency {}
 
     struct Payload {
-        let category: GroupBuyingCategory
+        let category: GroupBuyingCategory?
         let isSelected: Bool
     }
 
@@ -44,12 +44,12 @@ final class CategoryChipCell: UICollectionViewCell, ConfiguratorModule {
 
 // MARK: - Configure
 
-extension CategoryChipCell {
+extension HomeCategoryChipCell {
     func configure(dependency: Dependency, payload: Payload) {
-        self.titleLabel.text = payload.category.rawValue
+        self.titleLabel.text = payload.category?.rawValue ?? "전체"
 
         if payload.isSelected {
-            self.contentView.backgroundColor = .systemOrange
+            self.contentView.backgroundColor = .black
             self.titleLabel.textColor = .white
         } else {
             self.contentView.backgroundColor = .white
@@ -63,29 +63,23 @@ extension CategoryChipCell {
 
 // MARK: - Layout
 
-extension CategoryChipCell {
+extension HomeCategoryChipCell {
     private func setupLayout() {
         self.contentView.layer.cornerRadius = 18
         self.contentView.clipsToBounds = true
 
-        self.contentView.flex.justifyContent(.center)
-            .alignItems(.center)
-            .paddingHorizontal(16)
-            .define { flex in
-                flex.addItem(self.titleLabel)
-            }
-    }
-
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        self.contentView.flex.layout(mode: .adjustWidth)
+        self.contentView.addSubview(self.titleLabel)
+        self.titleLabel.snp.makeConstraints { make in
+            make.center.equalToSuperview()
+            make.leading.trailing.equalToSuperview().inset(16)
+        }
     }
 }
 
 
 // MARK: - Reuse
 
-extension CategoryChipCell {
+extension HomeCategoryChipCell {
     override func prepareForReuse() {
         super.prepareForReuse()
         self.contentView.layer.borderWidth = 0
