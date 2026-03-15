@@ -18,7 +18,7 @@ final class PostRepositoryImpl: PostRepository {
         page: Int,
         limit: Int,
         search: String?,
-        category: String?,
+        category: GroupBuyingCategory?,
         dateFrom: String?,
         dateTo: String?
     ) async throws -> Page<Post> {
@@ -26,7 +26,7 @@ final class PostRepositoryImpl: PostRepository {
             page: page,
             limit: limit,
             search: search,
-            category: category,
+            category: category?.rawValue,
             dateFrom: dateFrom,
             dateTo: dateTo
         )

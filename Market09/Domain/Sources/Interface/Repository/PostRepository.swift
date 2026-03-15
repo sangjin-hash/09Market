@@ -19,7 +19,7 @@ public protocol PostRepository {
         page: Int,
         limit: Int,
         search: String?,
-        category: String?,
+        category: GroupBuyingCategory?,
         dateFrom: String?,
         dateTo: String?
     ) async throws -> Page<Post>

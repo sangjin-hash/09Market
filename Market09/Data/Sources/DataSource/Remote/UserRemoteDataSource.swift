@@ -36,7 +36,7 @@ final class UserRemoteDataSourceImpl: UserRemoteDataSource {
 extension UserRemoteDataSourceImpl {
     private func postsEndpoint() -> String {
         guard let endpoint = Bundle.main.infoDictionary?["API_ME"] as? String else {
-            fatalError("API_POST가 Info.plist에 없습니다. Secrets.xcconfig을 확인하세요.")
+            fatalError("API_ME가 Info.plist에 없습니다. Secrets.xcconfig을 확인하세요.")
         }
         return endpoint
     }
