@@ -23,12 +23,14 @@ final class HomeReactor: Reactor, FactoryModule {
         case fetchPostList
         case loadNextPage
         case selectCategory(GroupBuyingCategory?)
+        case searchKeyword(String)
     }
 
     enum Mutation {
         case setLoading(Bool)
         case setFetchCompleted(Page<Post>)
         case setSelectedCategory(GroupBuyingCategory?)
+        case setKeyword(String)
         case setError(AppError?)
     }
 
@@ -45,7 +47,8 @@ final class HomeReactor: Reactor, FactoryModule {
 
     let initialState: State = State()
     private let dependency: Dependency
-    private let pageSize = 10
+    private let pageSize = 30
+    private let searchKeyword = BehaviorSubject<String>(value: "")
 
     required init(dependency: Dependency, payload: Void) {
         self.dependency = dependency
@@ -81,6 +84,10 @@ extension HomeReactor {
                 .just(.setSelectedCategory(category)),
                 fetchPosts(page: 1)
             ])
+            
+        case .searchKeyword(let keyword):
+            self.searchKeyword.onNext(keyword)
+            return .just(.setKeyword(keyword))
         }
     }
 
@@ -118,6 +125,9 @@ extension HomeReactor {
                 posts: newState.posts,
                 isLoading: newState.isLoading
             )
+            
+        case .setKeyword(let keyword):
+            newState.searchKeyword = keyword
 
         case .setError(let error):
             newState.error = error
@@ -125,14 +135,24 @@ extension HomeReactor {
         return newState
     }
     
-    private func fetchPosts(page: Int) -> Observable<Mutation> {
+    func transform(mutation: Observable<Mutation>) -> Observable<Mutation> {
+        let searchMutation = self.searchKeyword
+            .skip(1)
+            .flatMapLatest { keyword in
+                self.fetchPosts(page: 1, keyword: keyword)
+            }
+
+        return Observable.merge(mutation, searchMutation)
+    }
+
+    private func fetchPosts(page: Int, keyword: String? = nil) -> Observable<Mutation> {
         return .concat([
             .just(.setLoading(true)),
             Observable.task {
                 try await self.dependency.fetchPostsListUseCase.execute(
                     page: page,
                     limit: self.pageSize,
-                    search: self.currentState.searchKeyword,
+                    search: keyword ?? self.currentState.searchKeyword,
                     category: self.currentState.selectedCategory,
                     dateFrom: nil,
                     dateTo: nil

@@ -139,6 +139,20 @@ extension HomeViewController: View {
         Observable.just(Reactor.Action.fetchPostList)
             .bind(to: reactor.action)
             .disposed(by: self.disposeBag)
+        
+        let searchText = self.searchBar.rx.text.orEmpty.asObservable()
+
+        let clearText = self.searchBar.rx.delegate
+            .sentMessage(#selector(UISearchBarDelegate.searchBar(_:textDidChange:)))
+            .map { $0[1] as? String ?? "" }
+        
+        Observable.merge(searchText, clearText)
+            .skip(1)
+            .debounce(.milliseconds(300), scheduler: MainScheduler.instance)
+            .distinctUntilChanged()
+            .map { Reactor.Action.searchKeyword($0) }
+            .bind(to: reactor.action)
+            .disposed(by: self.disposeBag)
 
         self.collectionView.rx.itemSelected
             .filter { $0.section == 0 }
