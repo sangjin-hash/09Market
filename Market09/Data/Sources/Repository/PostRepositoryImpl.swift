@@ -37,5 +37,12 @@ final class PostRepositoryImpl: PostRepository {
         return try await self.remoteDataSource.fetchTop10Posts()
             .map(PostMapper.toPostEntity)
     }
-}
+    
+    func likePost(userId: String, postId: String) async throws {
+        return try await self.remoteDataSource.likePost(userId: userId, postId: postId)
+    }
 
+    func cancelLikePost(userId: String, postId: String) async throws {
+        return try await self.remoteDataSource.cancelLikePost(userId: userId, postId: postId)
+    }
+}

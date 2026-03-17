@@ -17,6 +17,7 @@ public protocol APIClient {
     func post(_ endpoint: String, body: Data?) async throws -> Data
     func put(_ endpoint: String, body: Data?) async throws -> Data
     func delete(_ endpoint: String) async throws -> Void
+    func delete(_ endpoint: String, queryItems: [URLQueryItem]) async throws -> Void
     func patch(_ endpoint: String, body: Data?) async throws -> Data
 }
 
@@ -60,6 +61,10 @@ final class APIClientImpl: APIClient, @unchecked Sendable {
 
     func delete(_ endpoint: String) async throws {
         _ = try await request(endpoint: endpoint, method: "DELETE")
+    }
+
+    func delete(_ endpoint: String, queryItems: [URLQueryItem]) async throws {
+        _ = try await request(endpoint: endpoint, method: "DELETE", queryItems: queryItems)
     }
 
     func patch(_ endpoint: String, body: Data?) async throws -> Data {

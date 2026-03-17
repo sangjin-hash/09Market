@@ -27,4 +27,16 @@ public protocol PostRepository {
     /// 인기 공동구매 TOP 10
     /// - Returns: 최근 7일 내 좋아요 순 상위 10개 게시글
     func fetchTop10Posts() async throws -> [Post]
+    
+    /// POST - 게시글 좋아요
+    /// - Parameters:
+    ///   - userId: 유저 ID(PK)
+    ///   - postId: 해당 게시글 ID
+    func likePost(userId: String, postId: String) async throws
+
+    /// DELETE - 게시글 좋아요 취소
+    /// - Parameters:
+    ///   - userId: 유저 ID(PK)
+    ///   - postId: 해당 게시글 ID
+    func cancelLikePost(userId: String, postId: String) async throws
 }

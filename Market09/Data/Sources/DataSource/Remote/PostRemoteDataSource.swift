@@ -31,6 +31,19 @@ protocol PostRemoteDataSource {
     /// GET — 인기 공동구매 TOP 10
     /// - Returns: 최근 7일 내 좋아요 순 상위 10개 게시글
     func fetchTop10Posts() async throws -> [PostResponse]
+    
+    /// POST - 게시글 좋아요
+    /// - Parameters:
+    ///   - userId: 유저 ID(PK)
+    ///   - postId: 해당 게시글 ID
+    func likePost(userId: String, postId: String) async throws
+
+    /// DELETE - 게시글 좋아요 취소
+    /// - Parameters:
+    ///   - userId: 유저 ID(PK)
+    ///   - postId: 해당 게시글 ID
+    func cancelLikePost(userId: String, postId: String) async throws
+
 }
 
 final class PostRemoteDataSourceImpl: PostRemoteDataSource {
@@ -83,6 +96,25 @@ final class PostRemoteDataSourceImpl: PostRemoteDataSource {
             return try JSONDecoder().decode([PostResponse].self, from: data)
         }
     }
+    
+    func likePost(userId: String, postId: String) async throws {
+        return try await performRequest {
+            let endpoint = self.likeEndpoint()
+            let body = try JSONEncoder().encode(PostLikeRequest(userId: userId, postId: postId))
+            _ = try await self.apiClient.post(endpoint, body: body)
+        }
+    }
+    
+    func cancelLikePost(userId: String, postId: String) async throws {
+        return try await performRequest {
+            let endpoint = self.likeEndpoint()
+            let queryItems = [
+                URLQueryItem(name: LikeQueryKey.kUserId, value: "eq.\(userId)"),
+                URLQueryItem(name: LikeQueryKey.kPostId, value: "eq.\(postId)"),
+            ]
+            try await self.apiClient.delete(endpoint, queryItems: queryItems)
+        }
+    }
 }
 
 private enum PostQueryKey {
@@ -95,6 +127,11 @@ private enum PostQueryKey {
     static let kDateTo = "date_to"
 }
 
+private enum LikeQueryKey {
+    static let kUserId = "user_id"
+    static let kPostId = "post_id"
+}
+
 private enum PostAction {
     static let kList = "list"
     static let kTop10 = "top10"
@@ -104,6 +141,13 @@ extension PostRemoteDataSourceImpl {
     private func postsEndpoint() -> String {
         guard let endpoint = Bundle.main.infoDictionary?["API_POST"] as? String else {
             fatalError("API_POST가 Info.plist에 없습니다. Secrets.xcconfig을 확인하세요.")
+        }
+        return endpoint
+    }
+    
+    private func likeEndpoint() -> String {
+        guard let endpoint = Bundle.main.infoDictionary?["API_LIKE"] as? String else {
+            fatalError("API_LIKE가 Info.plist에 없습니다. Secrets.xcconfig을 확인하세요.")
         }
         return endpoint
     }

@@ -70,5 +70,19 @@ public final class DomainAssembly: Assembly {
         container.register(FetchTop10PostsUseCase.self) { r in
             FetchTop10PostsUseCaseImpl(postRepository: r.resolve())
         }.inObjectScope(.container)
+        
+        container.register(LikePostUseCase.self) { r in
+            LikePostUseCaseImpl(
+                postRepository: r.resolve(),
+                userStore: r.resolve()
+            )
+        }.inObjectScope(.container)
+        
+        container.register(CancelLikePostUseCase.self) { r in
+            CancelLikePostUseCaseImpl(
+                postRepository: r.resolve(),
+                userStore: r.resolve()
+            )
+        }.inObjectScope(.container)
     }
 }
