@@ -15,6 +15,7 @@ enum HomeSectionItem: IdentifiableType, Equatable {
     case category(GroupBuyingCategory?, Bool)
     case top10Banner
     case post(Post)
+    case skeleton(Int)
 
     var identity: String {
         switch self {
@@ -26,6 +27,9 @@ enum HomeSectionItem: IdentifiableType, Equatable {
 
         case .post(let post):
             return "post_\(post.id)"
+            
+        case .skeleton(let index):
+            return "skeleton_\(index)"
         }
     }
 
@@ -41,6 +45,9 @@ enum HomeSectionItem: IdentifiableType, Equatable {
             return lPost.id == rPost.id
                 && lPost.likesCount == rPost.likesCount
                 && lPost.isLiked == rPost.isLiked
+        
+        case (.skeleton(let l), .skeleton(let r)):
+            return l == r
 
         default:
             return false

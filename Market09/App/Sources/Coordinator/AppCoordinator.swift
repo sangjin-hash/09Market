@@ -10,6 +10,7 @@ import UIKit
 import AppCore
 import Authenticate
 import Domain
+import Home
 import Login
 import Profile
 import Shared_DI
@@ -25,9 +26,10 @@ final class AppCoordinator: Coordinator {
     // MARK: - Properties
 
     private enum LoginContext {
-        case launch
-        case profile
-        case requireLogin
+        case launch             // 앱 최초 실행 → 로그인 후 탭바 표시
+        case profile            // 프로필 탭에서 요청 → 로그인 후 pop (이전 화면 복귀)
+        case requireLogin       // 세션 만료 등 강제 → 로그인 후 pop + 제스처 복원
+        case home               // 홈 화면에서 익명 로그인 상태에서 로그인이 필요한 서비스 이용 -> 로그인 후 home
     }
 
     private let window: UIWindow
@@ -71,6 +73,7 @@ private extension AppCoordinator {
         let tabBarCoordinator = TabBarCoordinator(
             navigationController: self.navigationController,
             diContainer: self.diContainer,
+            homeDelegate: self,
             profileDelegate: self
         )
 
@@ -143,11 +146,25 @@ extension AppCoordinator: LoginCoordinatorDelegate {
         case .requireLogin:
             self.navigationController.interactivePopGestureRecognizer?.isEnabled = true
             self.navigationController.popViewController(animated: true)
+            
+        case .home:
+            self.navigationController.popViewController(animated: true)
 
         case .none:
             break
         }
 
         self.loginContext = nil
+    }
+}
+
+
+// MARK: - HomeCoordinatorDelegate
+
+extension AppCoordinator: HomeCoordinatorDelegate {
+    /// 익명로그인 상태에서 로그인이 필요한 서비스를 이용한 경우 -> 로그인 유도
+    func homeDidRequestLogin() {
+        self.loginContext = .home
+        showLogin()
     }
 }

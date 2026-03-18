@@ -7,14 +7,14 @@
 
 import Domain
 
-public final class FetchTop10PostsUseCaseImpl: FetchTop10PostsUseCase {
+final class FetchTop10PostsUseCaseImpl: FetchTop10PostsUseCase {
     private let postRepository: PostRepository
 
-    public init(postRepository: PostRepository) {
+    init(postRepository: PostRepository) {
         self.postRepository = postRepository
     }
 
-    public func execute() async throws -> [Post] {
+    func execute() async throws -> [Post] {
         return try await self.postRepository.fetchTop10Posts()
     }
 }

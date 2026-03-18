@@ -7,14 +7,14 @@
 
 import Domain
 
-public final class FetchPostsListUseCaseImpl: FetchPostsListUseCase {
+final class FetchPostsListUseCaseImpl: FetchPostsListUseCase {
     private let postRepository: PostRepository
 
-    public init(postRepository: PostRepository) {
+    init(postRepository: PostRepository) {
         self.postRepository = postRepository
     }
 
-    public func execute(
+    func execute(
         page: Int,
         limit: Int,
         search: String?,

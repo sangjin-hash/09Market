@@ -1,6 +1,6 @@
 //
 //  Strings.swift
-//  Util
+//  DesignSystem
 //
 //  Created by Sangjin Lee
 //

@@ -18,7 +18,10 @@ public final class HomeAssembly: Assembly {
         container.register(HomeReactor.Factory.self) { r in
             HomeReactor.Factory(dependency: .init(
                 fetchPostsListUseCase: r.resolve(),
-                fetchTop10PostsUseCase: r.resolve()
+                fetchTop10PostsUseCase: r.resolve(),
+                likePostUseCase: r.resolve(),
+                cancelLikePostUseCase: r.resolve(),
+                userStore: r.resolve()
             ))
         }
         .inObjectScope(.graph)

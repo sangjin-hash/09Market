@@ -8,12 +8,12 @@
 import AppCore
 import Domain
 
-public final class SignInWithIdTokenUseCaseImpl: SignInWithIdTokenUseCase {
+final class SignInWithIdTokenUseCaseImpl: SignInWithIdTokenUseCase {
     private let authRepository: AuthRepository
     private let userRepository: UserRepository
     private let userStore: UserStore
 
-    public init(
+    init(
         authRepository: AuthRepository,
         userRepository: UserRepository,
         userStore: UserStore
@@ -23,7 +23,7 @@ public final class SignInWithIdTokenUseCaseImpl: SignInWithIdTokenUseCase {
         self.userStore = userStore
     }
 
-    public func execute(provider: AuthProvider, idToken: String, nonce: String?) async throws -> AuthToken {
+    func execute(provider: AuthProvider, idToken: String, nonce: String?) async throws -> AuthToken {
         let token = try await self.authRepository.signInWithIdToken(
             provider: provider,
             idToken: idToken,

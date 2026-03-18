@@ -8,14 +8,14 @@
 import AppCore
 import Domain
 
-public final class FetchMeUseCaseImpl: FetchMeUseCase {
+final class FetchMeUseCaseImpl: FetchMeUseCase {
     private let userRepository: UserRepository
 
-    public init(userRepository: UserRepository) {
+    init(userRepository: UserRepository) {
         self.userRepository = userRepository
     }
 
-    public func execute() async throws -> User? {
+    func execute() async throws -> User? {
         return try await self.userRepository.fetchMe()
     }
 }

@@ -7,7 +7,7 @@
 
 import UIKit
 
-import Util
+import DesignSystem
 
 public enum ErrorDialog {
     /// AppError의 handleStrategy에 따라 적절한 다이얼로그를 표시

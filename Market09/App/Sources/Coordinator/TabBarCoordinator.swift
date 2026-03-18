@@ -8,10 +8,10 @@
 import UIKit
 
 import AppCore
+import DesignSystem
 import Home
 import Profile
 import Shared_DI
-import Util
 
 final class TabBarCoordinator: Coordinator {
 
@@ -25,19 +25,22 @@ final class TabBarCoordinator: Coordinator {
     
     private let tabBarController: UITabBarController
     private let diContainer: AppDIContainer
+    private weak var homeDelegate: HomeCoordinatorDelegate?
     private weak var profileDelegate: ProfileCoordinatorDelegate?
-    
-    
+
+
     // MARK: - Init
-    
+
     init(
         navigationController: UINavigationController,
         diContainer: AppDIContainer,
+        homeDelegate: HomeCoordinatorDelegate,
         profileDelegate: ProfileCoordinatorDelegate
     ) {
         self.navigationController = navigationController
         self.tabBarController = UITabBarController()
         self.diContainer = diContainer
+        self.homeDelegate = homeDelegate
         self.profileDelegate = profileDelegate
     }
     
@@ -68,6 +71,7 @@ private extension TabBarCoordinator {
     func setupHomeTab(_ nav: UINavigationController) {
         nav.tabBarItem = UITabBarItem(title: Strings.Tab.home, image: UIImage(systemName: "house"), tag: 0)
         let coordinator: HomeCoordinator = self.diContainer.resolver.resolve(argument: nav)
+        coordinator.delegate = self.homeDelegate
         addChild(coordinator)
         coordinator.start()
     }

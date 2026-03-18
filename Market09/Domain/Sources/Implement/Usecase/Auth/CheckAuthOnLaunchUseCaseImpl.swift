@@ -8,12 +8,12 @@
 import AppCore
 import Domain
 
-public final class CheckAuthOnLaunchUseCaseImpl: CheckAuthOnLaunchUseCase {
+final class CheckAuthOnLaunchUseCaseImpl: CheckAuthOnLaunchUseCase {
     private let authRepository: AuthRepository
     private let userRepository: UserRepository
     private let userStore: UserStore
 
-    public init(
+    init(
         authRepository: AuthRepository,
         userRepository: UserRepository,
         userStore: UserStore
@@ -23,7 +23,7 @@ public final class CheckAuthOnLaunchUseCaseImpl: CheckAuthOnLaunchUseCase {
         self.userStore = userStore
     }
 
-    public func execute() async throws -> AuthState {
+    func execute() async throws -> AuthState {
         // 1. 토큰 없음 → 익명 로그인
         if case .noToken = self.authRepository.currentTokenStatus() {
             _ = try await self.authRepository.signInAnonymously()

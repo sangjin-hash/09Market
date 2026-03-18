@@ -10,6 +10,7 @@ import UIKit
 import Domain
 import Shared_DI
 import Shared_UI
+import Shared_ReactiveX
 
 import Kingfisher
 
@@ -20,7 +21,8 @@ final class HomePostCardCell: UICollectionViewCell, ConfiguratorModule {
     struct Payload {
         let post: Post
     }
-
+    
+    var disposeBag = DisposeBag()
 
     // MARK: - Formatter
 
@@ -118,7 +120,7 @@ final class HomePostCardCell: UICollectionViewCell, ConfiguratorModule {
         $0.layer.cornerRadius = 25
     }
 
-    private let favoriteButton = UIButton(type: .system).then {
+    let likeButton = UIButton(type: .system).then {
         $0.setImage(UIImage(systemName: "heart"), for: .normal)
         $0.tintColor = .systemGray3
         $0.backgroundColor = .systemGray6
@@ -146,8 +148,17 @@ extension HomePostCardCell {
         let post = payload.post
 
         // Profile
+        self.profileImageView.kf.indicatorType = .activity
         if let url = URL(string: post.influencer.profilePicUrl) {
-            self.profileImageView.kf.setImage(with: url)
+            let profileSize = CGSize(width: 40, height: 40)
+            self.profileImageView.kf.setImage(
+                with: url,
+                options: [
+                    .processor(DownsamplingImageProcessor(size: profileSize)),
+                    .scaleFactor(UIScreen.main.scale),
+                    .cacheOriginalImage
+                ]
+            )
         }
         self.nameLabel.text = post.influencer.fullName
         self.usernameLabel.text = "@\(post.influencer.username)"
@@ -160,10 +171,21 @@ extension HomePostCardCell {
         // Product image
         let hasImage = !(post.imageUrls ?? []).isEmpty
         self.productImageView.flex.display(hasImage ? .flex : .none)
+        self.productImageView.kf.indicatorType = .activity
         if hasImage,
            let urlString = post.imageUrls?.first,
            let url = URL(string: urlString) {
-            self.productImageView.kf.setImage(with: url)
+            let productSize = self.productImageView.bounds.size.width > 0
+                ? self.productImageView.bounds.size
+                : CGSize(width: UIScreen.main.bounds.width - 32, height: (UIScreen.main.bounds.width - 32) * 3 / 4)
+            self.productImageView.kf.setImage(
+                with: url,
+                options: [
+                    .processor(DownsamplingImageProcessor(size: productSize)),
+                    .scaleFactor(UIScreen.main.scale),
+                    .cacheOriginalImage
+                ]
+            )
         }
 
         // Product info
@@ -183,10 +205,18 @@ extension HomePostCardCell {
         // Likes
         self.likesLabel.text = "\(post.likesCount)명이 좋아합니다"
 
-        // Favorite
+        // Like Button
         let heartImage = post.isLiked ? "heart.fill" : "heart"
-        self.favoriteButton.setImage(UIImage(systemName: heartImage), for: .normal)
-        self.favoriteButton.tintColor = post.isLiked ? .systemPink : .systemGray3
+        self.likeButton.setImage(UIImage(systemName: heartImage), for: .normal)
+        self.likeButton.tintColor = post.isLiked ? .systemPink : .systemGray3
+
+        // Link
+        self.linkButton.rx.tap
+            .subscribe(onNext: {
+                guard let url = post.influencer.instagramProfileURL else { return }
+                UIApplication.shared.open(url)
+            })
+            .disposed(by: self.disposeBag)
 
         self.containerView.flex.markDirty()
         self.setNeedsLayout()
@@ -261,7 +291,7 @@ extension HomePostCardCell {
             // Button row
             flex.addItem().direction(.row).alignItems(.center).marginTop(16).define { row in
                 row.addItem(self.linkButton).grow(1).height(50)
-                row.addItem(self.favoriteButton).size(50).marginLeft(10)
+                row.addItem(self.likeButton).size(50).marginLeft(10)
             }
         }
     }
@@ -291,6 +321,7 @@ extension HomePostCardCell {
 extension HomePostCardCell {
     override func prepareForReuse() {
         super.prepareForReuse()
+        self.disposeBag = DisposeBag()
         self.profileImageView.kf.cancelDownloadTask()
         self.profileImageView.image = nil
         self.productImageView.kf.cancelDownloadTask()

@@ -21,6 +21,7 @@ let project = Project(
             sources: ["Sources/**"],
             dependencies: [
                 .module(.util),
+                .module(.designSystem),
                 .project(
                     target: "Shared_ReactiveX",
                     path: .relativeToRoot("Shared/Shared_ReactiveX")

@@ -11,7 +11,6 @@ import AppCore
 import DesignSystem
 import Shared_DI
 import Shared_ReactiveX
-import Util
 
 final class ProfileViewController: UIViewController, FactoryModule {
 

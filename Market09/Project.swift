@@ -60,6 +60,7 @@ let project = Project(
                     // EndPoint
                     "API_ME": "$(API_ME)",
                     "API_POST": "$(API_POST)",
+                    "API_LIKE": "$(API_LIKE)",
                 ]
             ),
             buildableFolders: [

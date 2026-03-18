@@ -16,10 +16,10 @@ public struct Post {
     public let groupBuyingStart: Date
     public let groupBuyingEnd: Date
     public let groupBuyingUrl: String?
-    public let likesCount: Int
+    public var likesCount: Int
     public let postedAt: Date
     public let influencer: Influencer
-    public let isLiked: Bool
+    public var isLiked: Bool
 
     public init(
         id: String,

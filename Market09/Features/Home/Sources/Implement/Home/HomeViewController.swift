@@ -43,44 +43,6 @@ final class HomeViewController: UIViewController, FactoryModule {
         $0.searchBarStyle = .minimal
     }
 
-    private lazy var dataSource = RxCollectionViewSectionedAnimatedDataSource<HomeSectionModel>(
-        animationConfiguration: .init(insertAnimation: .none, reloadAnimation: .none, deleteAnimation: .none),
-        configureCell: { _, collectionView, indexPath, item in
-            switch item {
-            case .category(let category, let isSelected):
-                guard let cell = collectionView.dequeueReusableCell(
-                    withReuseIdentifier: "CategoryCell", for: indexPath
-                ) as? HomeCategoryChipCell else { return UICollectionViewCell() }
-
-                cell.configure(
-                    dependency: .init(),
-                    payload: .init(
-                        category: category,
-                        isSelected: isSelected
-                    )
-                )
-
-                return cell
-
-            case .top10Banner:
-                guard let cell = collectionView.dequeueReusableCell(
-                    withReuseIdentifier: "BannerCell", for: indexPath
-                ) as? HomeTop10BannerCell else { return UICollectionViewCell() }
-
-                cell.configure(dependency: .init(), payload: .init())
-                return cell
-
-            case .post(let post):
-                guard let cell = collectionView.dequeueReusableCell(
-                    withReuseIdentifier: "PostCell", for: indexPath
-                ) as? HomePostCardCell else { return UICollectionViewCell() }
-
-                cell.configure(dependency: .init(), payload: .init(post: post))
-                return cell
-            }
-        }
-    )
-
     private lazy var collectionView: UICollectionView = {
         let cv = UICollectionView(
             frame: .zero,
@@ -90,6 +52,7 @@ final class HomeViewController: UIViewController, FactoryModule {
         cv.register(HomeCategoryChipCell.self, forCellWithReuseIdentifier: "CategoryCell")
         cv.register(HomeTop10BannerCell.self, forCellWithReuseIdentifier: "BannerCell")
         cv.register(HomePostCardCell.self, forCellWithReuseIdentifier: "PostCell")
+        cv.register(HomePostSkeletonCell.self, forCellWithReuseIdentifier: "SkeletonCell")
         return cv
     }()
 
@@ -126,9 +89,76 @@ final class HomeViewController: UIViewController, FactoryModule {
 extension HomeViewController: View {
     func bind(reactor: HomeReactor) {
 
+        // MARK: - DataSource
+
+        let dataSource = RxCollectionViewSectionedAnimatedDataSource<HomeSectionModel>(
+            animationConfiguration: .init(insertAnimation: .none, reloadAnimation: .none, deleteAnimation: .none),
+            configureCell: { [weak reactor] _, collectionView, indexPath, item in
+                switch item {
+                case .category(let category, let isSelected):
+                    guard let cell = collectionView.dequeueReusableCell(
+                        withReuseIdentifier: "CategoryCell", for: indexPath
+                    ) as? HomeCategoryChipCell else { return UICollectionViewCell() }
+
+                    cell.configure(
+                        dependency: .init(),
+                        payload: .init(
+                            category: category,
+                            isSelected: isSelected
+                        )
+                    )
+
+                    return cell
+
+                case .top10Banner:
+                    guard let cell = collectionView.dequeueReusableCell(
+                        withReuseIdentifier: "BannerCell", for: indexPath
+                    ) as? HomeTop10BannerCell else { return UICollectionViewCell() }
+
+                    cell.configure(dependency: .init(), payload: .init())
+                    return cell
+
+                case .post(let post):
+                    guard let cell = collectionView.dequeueReusableCell(
+                        withReuseIdentifier: "PostCell", for: indexPath
+                    ) as? HomePostCardCell else { return UICollectionViewCell() }
+
+                    cell.configure(dependency: .init(), payload: .init(post: post))
+
+                    cell.likeButton.rx.tap
+                        .map { HomeReactor.Action.toggleLike(post.id, post.isLiked) }
+                        .bind(to: reactor!.action)
+                        .disposed(by: cell.disposeBag)
+
+                    return cell
+
+                case .skeleton(_):
+                    guard let cell = collectionView.dequeueReusableCell(
+                        withReuseIdentifier: "SkeletonCell", for: indexPath
+                    ) as? HomePostSkeletonCell else { return UICollectionViewCell() }
+
+                    return cell
+                }
+            }
+        )
+
         // MARK: - Action
 
         Observable.just(Reactor.Action.fetchPostList)
+            .bind(to: reactor.action)
+            .disposed(by: self.disposeBag)
+
+        let searchText = self.searchBar.rx.text.orEmpty.asObservable()
+
+        let clearText = self.searchBar.rx.delegate
+            .sentMessage(#selector(UISearchBarDelegate.searchBar(_:textDidChange:)))
+            .map { $0[1] as? String ?? "" }
+
+        Observable.merge(searchText, clearText)
+            .skip(1)
+            .debounce(.milliseconds(300), scheduler: MainScheduler.instance)
+            .distinctUntilChanged()
+            .map { Reactor.Action.searchKeyword($0) }
             .bind(to: reactor.action)
             .disposed(by: self.disposeBag)
 
@@ -157,7 +187,30 @@ extension HomeViewController: View {
         // MARK: - State
 
         reactor.state.map(\.sections)
-            .bind(to: self.collectionView.rx.items(dataSource: self.dataSource))
+            .observe(on: MainScheduler.asyncInstance)
+            .bind(to: self.collectionView.rx.items(dataSource: dataSource))
+            .disposed(by: self.disposeBag)
+        
+        reactor.pulse(\.$error)
+            .compactMap { $0 }
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] error in
+                guard let self else { return }
+                ErrorDialog.show(on: self, error: error)
+            })
+            .disposed(by: self.disposeBag)
+        
+        reactor.pulse(\.$needsLogin)
+            .filter { $0 }
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] _ in
+                guard let self else { return }
+                ConfirmDialog.show(
+                    on: self,
+                    message: "로그인이 필요합니다.\n로그인 화면으로 이동할까요?",
+                    confirmAction: { reactor.action.onNext(.confirmLogin) }
+                )
+            })
             .disposed(by: self.disposeBag)
     }
 }

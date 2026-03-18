@@ -8,16 +8,16 @@
 import AppCore
 import Domain
 
-public final class SignOutUseCaseImpl: SignOutUseCase {
+final class SignOutUseCaseImpl: SignOutUseCase {
     private let authRepository: AuthRepository
     private let userStore: UserStore
 
-    public init(authRepository: AuthRepository, userStore: UserStore) {
+    init(authRepository: AuthRepository, userStore: UserStore) {
         self.authRepository = authRepository
         self.userStore = userStore
     }
 
-    public func execute(provider: AuthProvider) async throws {
+    func execute(provider: AuthProvider) async throws {
         try await self.authRepository.signOut(provider: provider)
         try await self.authRepository.signInAnonymously()
         self.userStore.clear()
