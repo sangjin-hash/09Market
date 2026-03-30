@@ -1,0 +1,56 @@
+//
+//  CalendarCoordinatorImpl.swift
+//  CalendarImpl
+//
+//  Created by 23ji
+//
+
+import UIKit
+
+import AppCore
+import Calendar
+import Shared_DI
+
+final class CalendarCoordinatorImpl: CalendarCoordinator {
+
+    // MARK: - Coordinator Protocol
+
+    public var childCoordinators: [Coordinator] = []
+    public let navigationController: UINavigationController
+
+
+    // MARK: - Delegate
+
+    public weak var delegate: CalendarCoordinatorDelegate?
+
+
+    // MARK: - Reactor
+
+    //private let viewController: CalendarViewController
+
+
+    // MARK: - Init
+
+    public init(
+        navigationController: UINavigationController,
+    ) {
+        self.navigationController = navigationController
+    }
+
+
+    // MARK: - Start
+
+    public func start() {
+//        guard let reactor = self.viewController.reactor else { return }
+//        
+//        reactor.pulse(\.$loginConfirmed)
+//            .filter { $0 }
+//            .observe(on: MainScheduler.instance)
+//            .subscribe(onNext: { [weak self] _ in
+//                self?.delegate?.homeDidRequestLogin()
+//            })
+//            .disposed(by: self.disposeBag)
+//        
+//        self.navigationController.pushViewController(self.viewController, animated: true)
+    }
+}
