@@ -26,7 +26,7 @@ final class ScheduleCoordinatorImpl: ScheduleCoordinator {
 
     // MARK: - Reactor
 
-    //private let viewController: CalendarViewController
+    //private let viewController: ScheduleViewController
 
 
     // MARK: - Init

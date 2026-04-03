@@ -78,8 +78,6 @@ let project = Project(
                 .feature(.home, type: .implement),
                 .feature(.schedule, type: .interface),
                 .feature(.schedule, type: .implement),
-                .feature(.calendar, type: .interface),
-                .feature(.calendar, type: .implement),
                 .feature(.auth, type: .interface),
                 .feature(.auth, type: .implement),
                 .feature(.profile, type: .interface),
