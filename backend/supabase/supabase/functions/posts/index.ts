@@ -2,11 +2,6 @@ import { corsHeaders } from "../_shared/cors.ts";
 import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { createSupabaseClient, requireAuth } from "../_shared/auth.ts";
 import { requireFields, parseIntParam } from "../_shared/validation.ts";
-import {
-  isTempUrl,
-  extractFileName,
-  moveFile,
-} from "../_shared/storage.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -22,6 +17,8 @@ Deno.serve(async (req) => {
         return await handleList(req, url);
       case req.method === "GET" && action === "top10":
         return await handleTop10(req, url);
+      case req.method === "GET" && action === "schedule":
+        return await handleSchedule(req, url);
       case req.method === "POST" && action === "create":
         return await handleCreate(req);
       case req.method === "PUT" && action === "update":
@@ -61,7 +58,7 @@ async function handleList(req: Request, url: URL): Response | Promise<Response> 
   let query = supabase
     .from("posts")
     .select(
-      "id, product_name, price, category, image_urls, group_buying_start, group_buying_end, group_buying_url, likes_count, posted_at, influencers(id, username, full_name, profile_pic_url, external_url)",
+      "id, product_name, price, category, display_url, group_buying_start, group_buying_end, group_buying_url, likes_count, posted_at, influencers(id, username, full_name, profile_pic_url, external_url)",
       { count: "exact" }
     )
     .not("group_buying_start", "is", null)
@@ -194,7 +191,7 @@ async function handleTop10(req: Request, _url: URL): Response | Promise<Response
   const { data, error } = await supabase
     .from("posts")
     .select(
-      "id, product_name, price, category, image_urls, group_buying_start, group_buying_end, group_buying_url, likes_count, posted_at, influencers(id, username, full_name, profile_pic_url, external_url)"
+      "id, product_name, price, category, display_url, group_buying_start, group_buying_end, group_buying_url, likes_count, posted_at, influencers(id, username, full_name, profile_pic_url, external_url)"
     )
     .not("group_buying_start", "is", null)
     .not("group_buying_end", "is", null)
@@ -272,7 +269,6 @@ async function handleCreate(req: Request): Response | Promise<Response> {
       product_name: body.product_name,
       price: body.price,
       category: body.category,
-      image_urls: body.image_urls ?? null,
       group_buying_start: body.group_buying_start,
       group_buying_end: body.group_buying_end,
       group_buying_url: instagramUrl,
@@ -285,44 +281,6 @@ async function handleCreate(req: Request): Response | Promise<Response> {
 
   if (error) {
     return errorResponse("insert_error", error.message, 500);
-  }
-
-  // 2단계: temp URL → posts/{post_id}/ 로 이동
-  const imageUrls: string[] | null = data.image_urls;
-  if (imageUrls && imageUrls.length > 0) {
-    const movedUrls: string[] = [];
-
-    for (const url of imageUrls) {
-      if (isTempUrl(url)) {
-        const fileName = extractFileName(url);
-        if (fileName) {
-          try {
-            const newUrl = await moveFile(
-              `temp/${fileName}`,
-              `posts/${postId}/${fileName}`
-            );
-            movedUrls.push(newUrl);
-          } catch {
-            // move 실패 시 temp URL 유지 (fallback)
-            movedUrls.push(url);
-          }
-        } else {
-          movedUrls.push(url);
-        }
-      } else {
-        movedUrls.push(url);
-      }
-    }
-
-    // URL이 변경된 경우에만 UPDATE
-    if (movedUrls.some((u, i) => u !== imageUrls[i])) {
-      await supabase
-        .from("posts")
-        .update({ image_urls: movedUrls })
-        .eq("id", postId);
-
-      data.image_urls = movedUrls;
-    }
   }
 
   return jsonResponse(data, 201);
@@ -343,7 +301,6 @@ async function handleUpdate(req: Request): Response | Promise<Response> {
     "product_name",
     "price",
     "category",
-    "image_urls",
     "group_buying_start",
     "group_buying_end",
   ];
@@ -391,4 +348,90 @@ async function handleDelete(req: Request): Response | Promise<Response> {
     .eq("id", body.post_id);
 
   return new Response(null, { status: 204, headers: corsHeaders });
+}
+
+// ─── GET /posts?action=schedule ───
+// 내가 팔로우한 인플루언서의 공구 일정 조회
+// Query params: start_date (YYYY-MM-DD), end_date (YYYY-MM-DD), page, limit
+
+async function handleSchedule(req: Request, url: URL): Promise<Response> {
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const supabase = createSupabaseClient(authHeader);
+  const authUser = await requireAuth(supabase);
+
+  const startDate = url.searchParams.get("start_date");
+  const endDate = url.searchParams.get("end_date");
+
+  if (!startDate || !endDate) {
+    return errorResponse("invalid_params", "start_date and end_date are required", 400);
+  }
+
+  const page = Math.max(1, parseIntParam(url, "page", 1));
+  const limit = Math.min(50, Math.max(1, parseIntParam(url, "limit", 20)));
+  const offset = (page - 1) * limit;
+
+  // 1. 내가 팔로우한 인플루언서 ID 목록
+  const { data: follows } = await supabase
+    .from("follows")
+    .select("influencer_id")
+    .eq("user_id", authUser.id);
+
+  const influencerIds = (follows ?? []).map(
+    (f: { influencer_id: string }) => f.influencer_id
+  );
+
+  if (influencerIds.length === 0) {
+    return jsonResponse({ data: [], meta: { page, limit, total: 0 } }, 200);
+  }
+
+  // 2. 날짜 필터 + 팔로우 인플루언서 posts 조회
+  // 조건: group_buying_start <= end_date AND group_buying_end >= start_date
+  const { data, error, count } = await supabase
+    .from("posts")
+    .select(
+      `id, post_url, display_url, product_name, price, category,
+       group_buying_start, group_buying_end, likes_count,
+       influencers!influencer_id(id, username, full_name, profile_pic_url)`,
+      { count: "exact" }
+    )
+    .in("influencer_id", influencerIds)
+    .lte("group_buying_start", `${endDate}T23:59:59+09:00`)
+    .gte("group_buying_end", `${startDate}T00:00:00+09:00`)
+    .not("group_buying_start", "is", null)
+    .not("group_buying_end", "is", null)
+    .order("group_buying_end", { ascending: true })
+    .range(offset, offset + limit - 1);
+
+  if (error) {
+    return errorResponse("query_error", error.message, 500);
+  }
+
+  const posts = data ?? [];
+
+  // 3. is_liked 처리
+  let likedSet: Set<string> = new Set();
+  if (posts.length > 0) {
+    const postIds = posts.map((p: { id: string }) => p.id);
+    const { data: likes } = await supabase
+      .from("likes")
+      .select("post_id")
+      .eq("user_id", authUser.id)
+      .in("post_id", postIds);
+
+    likedSet = new Set(
+      (likes ?? []).map((l: { post_id: string }) => l.post_id)
+    );
+  }
+
+  const result = posts.map((post: Record<string, unknown>) => ({
+    ...post,
+    influencer: post.influencers,
+    influencers: undefined,
+    is_liked: likedSet.has(post.id as string),
+  }));
+
+  return jsonResponse(
+    { data: result, meta: { page, limit, total: count ?? 0 } },
+    200
+  );
 }

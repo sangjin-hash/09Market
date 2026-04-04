@@ -170,7 +170,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Profile Mapper 노드의 출력을 직접 참조\nconst data = $('Profile Mapper').first().json;\nconst posts = data.latestPosts || [];\nconst influencerId = data.influencer_id;\nconst externalUrl = data.influencer.external_url || '';\n\n// 기존 게시글 ID 조회 결과 참조 (새 게시글만 처리)\nconst existingResult = $('Postgres - Get Existing Post IDs').first().json;\nconst existingIds = new Set(existingResult.existing_ids || []);\n\n// 공구 판별 키워드\nconst STRONG_KEYWORDS = ['공구', '공동구매', '공구오픈', '공구마감', '공구기간', '공구가', '공구링크'];\nconst COMBO_KEYWORDS = ['오픈', 'open', '마감', '구매', '링크', '프로필', '배송', '선착순', '한정', '할인', '혜택', '이벤트'];\n\nfunction isGroupBuying(post) {\n  const caption = (post.caption || '').toLowerCase();\n  const hashtags = (post.hashtags || []).join(' ').toLowerCase();\n  const text = caption + ' ' + hashtags;\n\n  for (const kw of STRONG_KEYWORDS) {\n    if (text.includes(kw)) return true;\n  }\n\n  let comboCount = 0;\n  for (const kw of COMBO_KEYWORDS) {\n    if (text.includes(kw.toLowerCase())) comboCount++;\n    if (comboCount >= 2) return true;\n  }\n  return false;\n}\n\n// SQL 이스케이프 헬퍼\nfunction esc(val) {\n  if (val === null || val === undefined) return null;\n  return String(val).replace(/'/g, \"''\");\n}\n\n// PostgreSQL 배열 리터럴 변환\nfunction toPgArray(arr) {\n  if (!arr || arr.length === 0) return '{}';\n  return '{' + arr.map(v => '\"' + String(v).replace(/\"/g, '\\\"') + '\"').join(',') + '}';\n}\n\nconst groupBuyingPosts = [];\nfor (const post of posts) {\n  // 이미 DB에 있는 게시글은 스킵\n  if (existingIds.has(String(post.id))) continue;\n\n  if (!isGroupBuying(post)) continue;\n\n  groupBuyingPosts.push({\n    id: String(post.id),\n    influencer_id: influencerId,\n    post_url: post.url || '',\n    post_type: post.type || '',\n    caption: esc(post.caption),\n    caption_raw: post.caption || '',\n    display_url: post.displayUrl || '',\n    image_urls_pg: toPgArray(post.images || []),\n    hashtags_pg: toPgArray(post.hashtags || []),\n    external_url: externalUrl,\n    posted_at: post.timestamp || null,\n    updated_at: new Date().toISOString()\n  });\n}\n\nif (groupBuyingPosts.length === 0) {\n  return [{ json: { _skip: true } }];\n}\n\nreturn groupBuyingPosts.map(p => ({ json: p }));"
+        "jsCode": "// Profile Mapper 노드의 출력을 직접 참조\nconst data = $('Profile Mapper').first().json;\nconst posts = data.latestPosts || [];\nconst influencerId = data.influencer_id;\nconst externalUrl = data.influencer.external_url || '';\n\n// 기존 게시글 ID 조회 결과 참조 (새 게시글만 처리)\nconst existingResult = $('Postgres - Get Existing Post IDs').first().json;\nconst existingIds = new Set(existingResult.existing_ids || []);\n\n// 공구 판별 키워드\nconst STRONG_KEYWORDS = ['공구', '공동구매', '공구오픈', '공구마감', '공구기간', '공구가', '공구링크'];\nconst COMBO_KEYWORDS = ['오픈', 'open', '마감', '구매', '링크', '프로필', '배송', '선착순', '한정', '할인', '혜택', '이벤트'];\n\nfunction isGroupBuying(post) {\n  const caption = (post.caption || '').toLowerCase();\n  const hashtags = (post.hashtags || []).join(' ').toLowerCase();\n  const text = caption + ' ' + hashtags;\n\n  for (const kw of STRONG_KEYWORDS) {\n    if (text.includes(kw)) return true;\n  }\n\n  let comboCount = 0;\n  for (const kw of COMBO_KEYWORDS) {\n    if (text.includes(kw.toLowerCase())) comboCount++;\n    if (comboCount >= 2) return true;\n  }\n  return false;\n}\n\n// SQL 이스케이프 헬퍼\nfunction esc(val) {\n  if (val === null || val === undefined) return null;\n  return String(val).replace(/'/g, \"''\");\n}\n\n// PostgreSQL 배열 리터럴 변환\n  if (!arr || arr.length === 0) return '{}';\n  return '{' + arr.map(v => '\"' + String(v).replace(/\"/g, '\\\"') + '\"').join(',') + '}';\n}\n\nconst groupBuyingPosts = [];\nfor (const post of posts) {\n  // 이미 DB에 있는 게시글은 스킵\n  if (existingIds.has(String(post.id))) continue;\n\n  if (!isGroupBuying(post)) continue;\n\n  groupBuyingPosts.push({\n    id: String(post.id),\n    influencer_id: influencerId,\n    post_url: post.url || '',\n    post_type: post.type || '',\n    caption: esc(post.caption),\n    caption_raw: post.caption || '',\n    display_url: post.displayUrl || '',\n    external_url: externalUrl,\n    posted_at: post.timestamp || null,\n    updated_at: new Date().toISOString()\n  });\n}\n\nif (groupBuyingPosts.length === 0) {\n  return [{ json: { _skip: true } }];\n}\n\nreturn groupBuyingPosts.map(p => ({ json: p }));"
       },
       "id": "b1000001-0007-4000-8000-000000000007",
       "name": "Post Processor",
@@ -214,7 +214,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "INSERT INTO posts (id, influencer_id, post_url, post_type, caption, display_url, image_urls, hashtags, group_buying_start, group_buying_end, product_name, group_buying_url, posted_at, updated_at, price, category)\nVALUES (\n  '{{ $json.id }}',\n  '{{ $json.influencer_id }}',\n  '{{ $json.post_url }}',\n  '{{ $json.post_type }}',\n  '{{ $json.caption }}',\n  '{{ $json.display_url }}',\n  NULL,\n  '{{ $json.hashtags_pg }}',\n  {{ $json.group_buying_start ? \"'\" + $json.group_buying_start + \"'\" : 'NULL' }},\n  {{ $json.group_buying_end ? \"'\" + $json.group_buying_end + \"'\" : 'NULL' }},\n  {{ $json.product_name ? \"'\" + $json.product_name + \"'\" : 'NULL' }},\n  {{ $json.group_buying_url ? \"'\" + $json.group_buying_url + \"'\" : 'NULL' }},\n  {{ $json.posted_at ? \"'\" + $json.posted_at + \"'\" : 'NULL' }},\n  '{{ $json.updated_at }}',\n  {{ $json.price ? $json.price : 'NULL' }},\n  {{ $json.category ? \"'\" + $json.category + \"'\" : 'NULL' }}\n)\nON CONFLICT DO NOTHING;",
+        "query": "INSERT INTO posts (id, influencer_id, post_url, post_type, caption, display_url, hashtags, group_buying_start, group_buying_end, product_name, group_buying_url, posted_at, updated_at, price, category)\nVALUES (\n  '{{ $json.id }}',\n  '{{ $json.influencer_id }}',\n  '{{ $json.post_url }}',\n  '{{ $json.post_type }}',\n  '{{ $json.caption }}',\n  '{{ $json.display_url }}',\n  '{{ $json.hashtags_pg }}',\n  {{ $json.group_buying_start ? \"'\" + $json.group_buying_start + \"'\" : 'NULL' }},\n  {{ $json.group_buying_end ? \"'\" + $json.group_buying_end + \"'\" : 'NULL' }},\n  {{ $json.product_name ? \"'\" + $json.product_name + \"'\" : 'NULL' }},\n  {{ $json.group_buying_url ? \"'\" + $json.group_buying_url + \"'\" : 'NULL' }},\n  {{ $json.posted_at ? \"'\" + $json.posted_at + \"'\" : 'NULL' }},\n  '{{ $json.updated_at }}',\n  {{ $json.price ? $json.price : 'NULL' }},\n  {{ $json.category ? \"'\" + $json.category + \"'\" : 'NULL' }}\n)\nON CONFLICT DO NOTHING;",
         "options": {}
       },
       "id": "b1000001-0009-4000-8000-000000000009",
@@ -222,7 +222,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        2850,
+        3500,
         -150
       ],
       "credentials": {
@@ -241,13 +241,13 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3100,
+        3750,
         -150
       ]
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst year = new Date().getFullYear();\n\nreturn items.map(item => {\n  const caption = item.json.caption_raw || '';\n\n  const body = {\n    model: 'claude-haiku-4-5-20251001',\n    max_tokens: 2048,\n    messages: [{\n      role: 'user',\n      content: [\n        '다음 인스타그램 공동구매 게시글 캡션에서 상품 정보를 추출해주세요.',\n        '',\n        '[중요 규칙]',\n        '- 게시글에 상품이 여러 개이면 각 상품을 개별 객체로 분리하세요.',\n        '- 상품마다 공구 일정(시작/종료)이 다를 수 있으니 각각 확인하세요.',\n        '- 상품마다 가격이 다를 수 있으니 각각 확인하세요.',\n        '- 공구 일정이 모든 상품에 공통이면 동일한 값을 각 상품에 넣으세요.',\n        '- product_name은 핵심 상품명만 작성하세요. 용량(ml, g, kg, L), 중량, 수량, 개수 등 스펙 정보는 제외하세요. 예: \"살균 스프레이 소독제 대용량 450ml\" → \"살균 스프레이 소독제\", \"숙성김치(3kg)\" → \"숙성김치\", \"간장게장(1통 2.1kg - 4미)\" → \"간장게장\"',\n        '- 날짜에 시간이 명시되지 않은 경우 반드시 T23:59:59+09:00 (한국 시간)으로 설정하세요. 예: \"3월 8일\" → \"' + year + '-03-08T23:59:59+09:00\". 모든 날짜는 한국 시간(KST, +09:00) 기준입니다.',\n        '',\n        '[캡션]',\n        caption,\n        '',\n        '[추출 항목 - 상품별]',\n        '1. product_name: 상품명. 찾을 수 없으면 null.',\n        '2. price: 공구 가격 (숫자만, 원 단위). 찾을 수 없으면 null.',\n        '3. category: 상품 카테고리. 다음 중 하나만: \"뷰티\", \"푸드\", \"패션\", \"리빙\", \"키즈\", \"가전\", \"여행\", \"반려동물\", \"운동/건강\", \"교육/도서\", \"문구/취미\", \"캠핑/레저\", \"차량용품\". 판단 불가 시 null.',\n        '4. group_buying_start: 공구 시작 날짜 (ISO 8601, 예: ' + year + '-02-13T00:00:00+09:00). 연도 미명시 시 ' + year + '년 가정. 찾을 수 없으면 null. 한국 시간(KST, +09:00) 기준.',\n        '5. group_buying_end: 공구 종료 날짜 (ISO 8601). 연도 미명시 시 ' + year + '년 가정. 찾을 수 없으면 null. 한국 시간(KST, +09:00) 기준.',\n        '6. group_buying_url: 공동구매 링크 URL. 캡션에 URL이 직접 있으면 그 URL. \"프로필 링크\", \"링크는 프로필\" 등 프로필 참조 문구가 있으면 \"PROFILE_LINK\". 둘 다 아니면 null.',\n        '',\n        '[반환 형식]',\n        '반드시 아래 형식의 JSON만 반환하세요. 다른 설명 없이 JSON만 출력하세요.',\n        '{ \"products\": [ { \"product_name\": \"...\", \"price\": ..., \"category\": \"...\", \"group_buying_start\": \"...\", \"group_buying_end\": \"...\", \"group_buying_url\": \"...\" } ] }'\n      ].join('\\n')\n    }]\n  };\n\n  return {\n    json: {\n      ...item.json,\n      _claudeBody: JSON.stringify(body)\n    }\n  };\n});"
+        "jsCode": "const items = $input.all();\nconst year = new Date().getFullYear();\n\nreturn items.map(item => {\n  const caption = item.json.caption_raw || '';\n\n  const body = {\n    model: 'claude-haiku-4-5-20251001',\n    max_tokens: 1024,\n    messages: [{\n      role: 'user',\n      content: [\n        '다음 인스타그램 공동구매 게시글 캡션에서 상품 정보를 추출해주세요.',\n        '',\n        '[중요 규칙]',\n        '- 반드시 상품 1개만 반환하세요. 게시글에 여러 상품이 있어도 반드시 1개로 합쳐서 반환합니다.',\n        '',\n        '[product_name 작성 규칙 - 우선순위 순]',\n        '1. 세트 판매: 게시글에 명시된 세트명을 그대로 사용',\n        '   예) \"HaptIQ 햅틱 프라이팬 풀세트 4종\" → product_name: \"HaptIQ 햅틱 프라이팬 풀세트 4종\"',\n        '2. 같은 품종의 여러 옵션(사이즈/용량/색상 등): 공통 키워드만 추출',\n        '   예) 실리콘 지퍼백 소/중/대, 실리콘 지퍼백 특대 3P → product_name: \"실리콘 지퍼백\"',\n        '   예) 에어팟 케이스 블랙/화이트/베이지 → product_name: \"에어팟 케이스\"',\n        '3. 아예 다른 품종이 혼재: \"A + B\" 형식으로 병합',\n        '   예) 다목적 크림 + 살균제 소독제 → product_name: \"다목적 크림 + 살균제 소독제\"',\n        '',\n        '- product_name에서 용량(ml, g, kg, L), 중량, 수량, 개수 등 스펙 정보는 제외하세요.',\n        '  예: \"살균 스프레이 소독제 대용량 450ml\" → \"살균 스프레이 소독제\"',\n        '- 날짜에 시간이 명시되지 않은 경우 반드시 T23:59:59+09:00 (한국 시간)으로 설정하세요.',\n        '  예: \"3월 8일\" → \"' + year + '-03-08T23:59:59+09:00\". 모든 날짜는 한국 시간(KST, +09:00) 기준입니다.',\n        '',\n        '[캡션]',\n        caption,\n        '',\n        '[추출 항목]',\n        '1. product_name: 위 규칙에 따른 상품명. 찾을 수 없으면 null.',\n        '2. price: 공구 가격 (숫자만, 원 단위). 여러 가격이 있으면 가장 대표적인 가격. 찾을 수 없으면 null.',\n        '3. category: 상품 카테고리. 다음 중 하나만: \"뷰티\", \"푸드\", \"패션\", \"리빙\", \"키즈\", \"가전\", \"여행\", \"반려동물\", \"운동/건강\", \"교육/도서\", \"문구/취미\", \"캠핑/레저\", \"차량용품\". 판단 불가 시 null.',\n        '4. group_buying_start: 공구 시작 날짜 (ISO 8601, 예: ' + year + '-02-13T00:00:00+09:00). 연도 미명시 시 ' + year + '년 가정. 찾을 수 없으면 null.',\n        '5. group_buying_end: 공구 종료 날짜 (ISO 8601). 연도 미명시 시 ' + year + '년 가정. 찾을 수 없으면 null.',\n        '6. group_buying_url: 공동구매 링크 URL. 캡션에 URL이 직접 있으면 그 URL. \"프로필 링크\", \"링크는 프로필\" 등 프로필 참조 문구가 있으면 \"PROFILE_LINK\". 둘 다 아니면 null.',\n        '',\n        '[반환 형식]',\n        '반드시 아래 형식의 JSON만 반환하세요. 다른 설명 없이 JSON만 출력하세요.',\n        '{ \"products\": [ { \"product_name\": \"...\", \"price\": ..., \"category\": \"...\", \"group_buying_start\": \"...\", \"group_buying_end\": \"...\", \"group_buying_url\": \"...\" } ] }'\n      ].join('\\n')\n    }]\n  };\n\n  return {\n    json: {\n      ...item.json,\n      _claudeBody: JSON.stringify(body)\n    }\n  };\n});"
       },
       "id": "b1000001-0011-4000-8000-000000000011",
       "name": "Prepare Claude Request",
@@ -306,7 +306,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst originalItems = $('Prepare Claude Request').all();\n\nfunction esc(val) {\n  if (val === null || val === undefined) return null;\n  return String(val).replace(/'/g, \"''\");\n}\n\nfunction dedupId(influencerId, productName, start, end) {\n  const key = `${influencerId}:${productName}:${start}:${end}`;\n  let h = 0;\n  for (let i = 0; i < key.length; i++) {\n    h = ((h << 5) - h + key.charCodeAt(i)) | 0;\n  }\n  return influencerId + '_' + Math.abs(h).toString(36);\n}\n\nconst results = [];\nfor (let i = 0; i < items.length; i++) {\n  const claudeResponse = items[i].json;\n  const original = originalItems[i].json;\n\n  let products = [];\n\n  try {\n    const text = (claudeResponse.content && claudeResponse.content[0] && claudeResponse.content[0].text) || '';\n    const jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      const parsed = JSON.parse(jsonMatch[0]);\n      if (parsed.products && Array.isArray(parsed.products)) {\n        products = parsed.products;\n      } else {\n        products = [parsed];\n      }\n    }\n  } catch (e) {\n    continue;\n  }\n\n  for (let p = 0; p < products.length; p++) {\n    const prod = products[p];\n    const start = prod.group_buying_start || null;\n    const end = prod.group_buying_end || null;\n\n    if (!start || !end) continue;\n\n    let url = prod.group_buying_url || null;\n    if (url === 'PROFILE_LINK' && original.external_url) {\n      url = original.external_url;\n    } else if (url === 'PROFILE_LINK') {\n      url = null;\n    }\n\n    const productName = esc(prod.product_name || null);\n    const postId = dedupId(original.influencer_id, productName, start, end);\n\n    results.push({\n      json: {\n        id: postId,\n        influencer_id: original.influencer_id,\n        post_url: original.post_url,\n        post_type: original.post_type,\n        caption: original.caption,\n        display_url: original.display_url,\n        image_urls_pg: null,\n        hashtags_pg: original.hashtags_pg,\n        group_buying_start: start,\n        group_buying_end: end,\n        product_name: productName,\n        group_buying_url: url,\n        price: prod.price || null,\n        category: prod.category || null,\n        posted_at: original.posted_at,\n        updated_at: original.updated_at\n      }\n    });\n  }\n}\n\nif (results.length === 0) {\n  return [{ json: { _noResults: true } }];\n}\nreturn results;"
+        "jsCode": "const items = $input.all();\nconst originalItems = $('Prepare Claude Request').all();\n\nfunction esc(val) {\n  if (val === null || val === undefined) return null;\n  return String(val).replace(/'/g, \"''\");\n}\n\nfunction dedupId(influencerId, productName, start, end) {\n  const key = `${influencerId}:${productName}:${start}:${end}`;\n  let h = 0;\n  for (let i = 0; i < key.length; i++) {\n    h = ((h << 5) - h + key.charCodeAt(i)) | 0;\n  }\n  return influencerId + '_' + Math.abs(h).toString(36);\n}\n\nconst results = [];\nfor (let i = 0; i < items.length; i++) {\n  const claudeResponse = items[i].json;\n  const original = originalItems[i].json;\n\n  let products = [];\n\n  try {\n    const text = (claudeResponse.content && claudeResponse.content[0] && claudeResponse.content[0].text) || '';\n    const jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      const parsed = JSON.parse(jsonMatch[0]);\n      if (parsed.products && Array.isArray(parsed.products)) {\n        products = parsed.products;\n      } else {\n        products = [parsed];\n      }\n    }\n  } catch (e) {\n    continue;\n  }\n\n  for (let p = 0; p < products.length; p++) {\n    const prod = products[p];\n    const start = prod.group_buying_start || null;\n    const end = prod.group_buying_end || null;\n\n    if (!start || !end) continue;\n\n    let url = prod.group_buying_url || null;\n    if (url === 'PROFILE_LINK' && original.external_url) {\n      url = original.external_url;\n    } else if (url === 'PROFILE_LINK') {\n      url = null;\n    }\n\n    const productName = esc(prod.product_name || null);\n    const postId = dedupId(original.influencer_id, productName, start, end);\n\n    results.push({\n      json: {\n        id: postId,\n        influencer_id: original.influencer_id,\n        post_url: original.post_url,\n        post_type: original.post_type,\n        caption: original.caption,\n        display_url: original.display_url,\n        hashtags_pg: original.hashtags_pg,\n        group_buying_start: start,\n        group_buying_end: end,\n        product_name: productName,\n        group_buying_url: url,\n        price: prod.price || null,\n        category: prod.category || null,\n        posted_at: original.posted_at,\n        updated_at: original.updated_at\n      }\n    });\n  }\n}\n\nif (results.length === 0) {\n  return [{ json: { _noResults: true } }];\n}\nreturn results;"
       },
       "id": "b1000001-0013-4000-8000-000000000013",
       "name": "Merge Claude Response",
@@ -418,6 +418,113 @@
           "name": "Supabase Postgres"
         }
       }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": ""
+          },
+          "conditions": [
+            {
+              "id": "cond-no-display-url",
+              "leftValue": "={{ $json.display_url }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "c3000001-0040-4000-8000-000000000040",
+      "name": "IF - Has Display URL",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3000,
+        -150
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.display_url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "c3000001-0041-4000-8000-000000000041",
+      "name": "Download Post Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3000,
+        -400
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://rcvfnbmiebkfgkevmkhy.supabase.co/storage/v1/object/media/posts/' + $('IF - Has Display URL').item.json.id + '/display.jpg' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "image/jpeg"
+            },
+            {
+              "name": "x-upsert",
+              "value": "true"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "c3000001-0042-4000-8000-000000000042",
+      "name": "Upload Post Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3250,
+        -400
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "SUPABASE_SERVICE_ROLE_CREDENTIAL_ID",
+          "name": "Supabase Service Role"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst originalItems = $('IF - Has Display URL').all();\n\nreturn items.map((uploadItem, i) => {\n  const original = originalItems[i].json;\n  const uploadJson = uploadItem.json;\n  const uploadFailed = !uploadJson || uploadJson.error !== undefined ||\n    (uploadJson.statusCode && parseInt(String(uploadJson.statusCode)) >= 400);\n\n  const storageUrl = uploadFailed\n    ? original.display_url\n    : `https://rcvfnbmiebkfgkevmkhy.supabase.co/storage/v1/object/public/media/posts/${original.id}/display.jpg`;\n\n  return {\n    json: {\n      ...original,\n      display_url: storageUrl,\n    }\n  };\n});"
+      },
+      "id": "c3000001-0043-4000-8000-000000000043",
+      "name": "Update Post Display URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3500,
+        -400
+      ]
     }
   ],
   "connections": {
@@ -612,7 +719,7 @@
         ],
         [
           {
-            "node": "Postgres - Posts Insert",
+            "node": "IF - Has Display URL",
             "type": "main",
             "index": 0
           }
@@ -646,6 +753,57 @@
         [
           {
             "node": "Postgres - Get All Influencers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Has Display URL": {
+      "main": [
+        [
+          {
+            "node": "Postgres - Posts Insert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download Post Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Post Image": {
+      "main": [
+        [
+          {
+            "node": "Upload Post Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Post Image": {
+      "main": [
+        [
+          {
+            "node": "Update Post Display URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Post Display URL": {
+      "main": [
+        [
+          {
+            "node": "Postgres - Posts Insert",
             "type": "main",
             "index": 0
           }
