@@ -151,6 +151,7 @@ async function handleList(req: Request, url: URL): Response | Promise<Response> 
 
   const result = posts.map((post: Record<string, unknown>) => ({
     ...post,
+    image_urls: post.display_url ? [post.display_url] : [],
     influencer: post.influencers,
     influencers: undefined,
     is_liked: likedSet.has(post.id as string),
@@ -220,6 +221,7 @@ async function handleTop10(req: Request, _url: URL): Response | Promise<Response
 
   const result = posts.map((post: Record<string, unknown>, index: number) => ({
     ...post,
+    image_urls: post.display_url ? [post.display_url] : [],
     influencer: post.influencers,
     influencers: undefined,
     is_liked: likedSet.has(post.id as string),
@@ -425,6 +427,7 @@ async function handleSchedule(req: Request, url: URL): Promise<Response> {
 
   const result = posts.map((post: Record<string, unknown>) => ({
     ...post,
+    image_urls: post.display_url ? [post.display_url] : [],
     influencer: post.influencers,
     influencers: undefined,
     is_liked: likedSet.has(post.id as string),
