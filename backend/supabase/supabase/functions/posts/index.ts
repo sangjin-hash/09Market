@@ -277,6 +277,7 @@ async function handleCreate(req: Request): Response | Promise<Response> {
       submitted_by: authUser.id,
       post_url: instagramUrl,
       posted_at: new Date().toISOString(),
+      ...(body.display_url !== undefined && { display_url: body.display_url }),
     })
     .select()
     .single();
