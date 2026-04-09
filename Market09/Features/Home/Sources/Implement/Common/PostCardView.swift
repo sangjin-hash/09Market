@@ -11,28 +11,13 @@ import DesignSystem
 import Domain
 import Shared_ReactiveX
 import Shared_UI
+import Util
 
 import Kingfisher
 
 final class PostCardView: UIView {
 
     private var disposeBag = DisposeBag()
-
-
-    // MARK: - Formatter
-
-    private static let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "M/d"
-        return formatter
-    }()
-
-    private static let priceFormatter: NumberFormatter = {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        return formatter
-    }()
-
 
     // MARK: - UI
 
@@ -178,12 +163,12 @@ extension PostCardView {
 
         self.productNameLabel.text = post.productName
 
-        let startStr = Self.dateFormatter.string(from: post.groupBuyingStart)
-        let endStr = Self.dateFormatter.string(from: post.groupBuyingEnd)
+        let startStr = Formatters.displayDate.string(from: post.groupBuyingStart)
+        let endStr = Formatters.displayDate.string(from: post.groupBuyingEnd)
         self.dateLabel.text = "\(startStr) ~ \(endStr)"
 
         if let price = post.price,
-           let formatted = Self.priceFormatter.string(from: NSNumber(value: price)) {
+           let formatted = Formatters.decimalNumber.string(from: NSNumber(value: price)) {
             self.priceLabel.text = Strings.Home.price(formatted)
         } else {
             self.priceLabel.text = Strings.Home.priceUndecided

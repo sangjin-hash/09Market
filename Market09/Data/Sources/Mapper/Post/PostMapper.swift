@@ -8,6 +8,7 @@
 import Foundation
 
 import Domain
+import Util
 
 enum PostMapper {
     /// PostResponse -> PostEntity
@@ -18,8 +19,8 @@ enum PostMapper {
             price: response.price,
             category: GroupBuyingCategory(rawValue: response.category) ?? .beauty,
             displayUrl: response.displayUrl,
-            groupBuyingStart: dateFormatter.date(from: response.groupBuyingStart) ?? Date(),
-            groupBuyingEnd: dateFormatter.date(from: response.groupBuyingEnd) ?? Date(),
+            groupBuyingStart: Formatters.iso8601.date(from: response.groupBuyingStart) ?? Date(),
+            groupBuyingEnd: Formatters.iso8601.date(from: response.groupBuyingEnd) ?? Date(),
             groupBuyingUrl: response.groupBuyingUrl,
             likesCount: response.likesCount,
             postedAt: dateFormatter.date(from: response.postedAt) ?? Date(),
@@ -36,8 +37,8 @@ enum PostMapper {
             productName: post.productName,
             price: post.price ?? 0,
             category: post.category.rawValue,
-            groupBuyingStart: requestDateFormatter.string(from: post.groupBuyingStart),
-            groupBuyingEnd: requestDateFormatter.string(from: post.groupBuyingEnd)
+            groupBuyingStart: Formatters.iso8601Request.string(from: post.groupBuyingStart),
+            groupBuyingEnd: Formatters.iso8601Request.string(from: post.groupBuyingEnd)
         )
     }
 
@@ -50,17 +51,4 @@ enum PostMapper {
         )
     }
     
-    // MARK: - Private
-
-    private static let dateFormatter: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter
-    }()
-
-    private static let requestDateFormatter: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter
-    }()
 }

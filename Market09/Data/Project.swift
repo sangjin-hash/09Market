@@ -22,6 +22,7 @@ let project = Project(
             dependencies: [
                 .module(.domain),
                 .module(.core),
+                .module(.util),
                 .external(name: "Alamofire"),
                 .external(name: "GoogleSignIn"),
                 .external(name: "Kingfisher"),
