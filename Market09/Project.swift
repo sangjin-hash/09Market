@@ -61,6 +61,8 @@ let project = Project(
                     "API_ME": "$(API_ME)",
                     "API_POST": "$(API_POST)",
                     "API_LIKE": "$(API_LIKE)",
+                    "API_UPLOAD": "$(API_UPLOAD)",
+                    "API_INFLUENCER": "$(API_INFLUENCER)"
                 ]
             ),
             buildableFolders: [
