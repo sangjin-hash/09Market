@@ -27,6 +27,12 @@ protocol PostRemoteDataSource {
         dateFrom: String?,
         dateTo: String?
     ) async throws -> PageResponse<PostResponse>
+    
+    /// POST — 공동구매 게시글 등록
+    /// - Parameters:
+    ///   - request: PostCreateRequest
+    /// - Returns: 페이지네이션된 공동구매 게시글 목록
+    func createPost(_ request: PostCreateRequest) async throws -> PostResponse
 
     /// GET — 인기 공동구매 TOP 10
     /// - Returns: 최근 7일 내 좋아요 순 상위 10개 게시글
@@ -46,7 +52,7 @@ protocol PostRemoteDataSource {
 
 }
 
-final class PostRemoteDataSourceImpl: PostRemoteDataSource {
+final class PostRemoteDataSourceImpl: PostRemoteDataSource, RemoteDataSource {
     private let apiClient: APIClient
 
     init(apiClient: APIClient) {
@@ -84,6 +90,17 @@ final class PostRemoteDataSourceImpl: PostRemoteDataSource {
 
             let data = try await self.apiClient.get(endpoint, queryItems: queryItems)
             return try JSONDecoder().decode(PageResponse<PostResponse>.self, from: data)
+        }
+    }
+    
+    func createPost(_ request: PostCreateRequest) async throws -> PostResponse {
+        return try await performRequest {
+            let endpoint = self.postsEndpoint()
+            let queryItems = [URLQueryItem(name: PostQueryKey.kAction, value: PostAction.kCreate)]
+            let body = try JSONEncoder().encode(request)
+            
+            let data = try await self.apiClient.post(endpoint, queryItems: queryItems, body: body)
+            return try JSONDecoder().decode(PostResponse.self, from: data)
         }
     }
 
@@ -135,6 +152,7 @@ private enum LikeQueryKey {
 private enum PostAction {
     static let kList = "list"
     static let kTop10 = "top10"
+    static let kCreate = "create"
 }
 
 extension PostRemoteDataSourceImpl {
@@ -150,18 +168,5 @@ extension PostRemoteDataSourceImpl {
             fatalError("API_LIKE가 Info.plist에 없습니다. Secrets.xcconfig을 확인하세요.")
         }
         return endpoint
-    }
-
-    @discardableResult
-    private func performRequest<T>(_ operation: () async throws -> T) async throws -> T {
-        do {
-            return try await operation()
-        } catch let error as AppError {
-            throw error
-        } catch is DecodingError {
-            throw AppError.network(.invalidResponse)
-        } catch {
-            throw AppError.unknown(message: error.localizedDescription)
-        }
     }
 }

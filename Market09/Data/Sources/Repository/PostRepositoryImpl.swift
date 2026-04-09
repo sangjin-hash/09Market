@@ -32,6 +32,12 @@ final class PostRepositoryImpl: PostRepository {
         )
         return PostMapper.toPage(response)
     }
+    
+    func createPost(_ post: Post) async throws -> Post {
+        let request = PostMapper.toPostCreateRequest(post)
+        let response = try await self.remoteDataSource.createPost(request)
+        return PostMapper.toPostEntity(response)
+    }
 
     func fetchTop10Posts() async throws -> [Post] {
         return try await self.remoteDataSource.fetchTop10Posts()
