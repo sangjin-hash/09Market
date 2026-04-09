@@ -23,7 +23,7 @@ enum PostMapper {
             groupBuyingEnd: Formatters.iso8601.date(from: response.groupBuyingEnd) ?? Date(),
             groupBuyingUrl: response.groupBuyingUrl,
             likesCount: response.likesCount,
-            postedAt: dateFormatter.date(from: response.postedAt) ?? Date(),
+            postedAt: Formatters.iso8601.date(from: response.postedAt) ?? Date(),
             influencer: InfluencerMapper.toInfluencerEntity(response.influencer),
             isLiked: response.isLiked
         )
