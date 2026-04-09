@@ -12,7 +12,7 @@ public struct Post {
     public let productName: String
     public let price: Int?
     public let category: GroupBuyingCategory
-    public let imageUrls: [String]?
+    public let displayUrl: String?
     public let groupBuyingStart: Date
     public let groupBuyingEnd: Date
     public let groupBuyingUrl: String?
@@ -22,24 +22,24 @@ public struct Post {
     public var isLiked: Bool
 
     public init(
-        id: String,
+        id: String = "",
         productName: String,
         price: Int?,
         category: GroupBuyingCategory,
-        imageUrls: [String]?,
+        displayUrl: String? = nil,
         groupBuyingStart: Date,
         groupBuyingEnd: Date,
-        groupBuyingUrl: String?,
-        likesCount: Int,
-        postedAt: Date,
+        groupBuyingUrl: String? = nil,
+        likesCount: Int = 0,
+        postedAt: Date = Date(),
         influencer: Influencer,
-        isLiked: Bool
+        isLiked: Bool = false
     ) {
         self.id = id
         self.productName = productName
         self.price = price
         self.category = category
-        self.imageUrls = imageUrls
+        self.displayUrl = displayUrl
         self.groupBuyingStart = groupBuyingStart
         self.groupBuyingEnd = groupBuyingEnd
         self.groupBuyingUrl = groupBuyingUrl

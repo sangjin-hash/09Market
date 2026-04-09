@@ -155,11 +155,10 @@ extension PostCardView {
         self.statusBadgeLabel.text = self.statusText(status)
         self.statusBadgeLabel.backgroundColor = self.statusColor(status)
 
-        let hasImage = !(post.imageUrls ?? []).isEmpty
+        let hasImage = post.displayUrl != nil
         self.productImageView.flex.display(hasImage ? .flex : .none)
         self.productImageView.kf.indicatorType = .activity
-        if hasImage,
-           let urlString = post.imageUrls?.first,
+        if let urlString = post.displayUrl,
            let url = URL(string: urlString) {
             let productSize = self.productImageView.bounds.size.width > 0
                 ? self.productImageView.bounds.size

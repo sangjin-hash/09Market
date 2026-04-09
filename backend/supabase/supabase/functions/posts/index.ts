@@ -151,7 +151,7 @@ async function handleList(req: Request, url: URL): Response | Promise<Response> 
 
   const result = posts.map((post: Record<string, unknown>) => ({
     ...post,
-    image_urls: post.display_url ? [post.display_url] : [],
+    display_url: post.display_url ?? null,
     influencer: post.influencers,
     influencers: undefined,
     is_liked: likedSet.has(post.id as string),
@@ -221,7 +221,7 @@ async function handleTop10(req: Request, _url: URL): Response | Promise<Response
 
   const result = posts.map((post: Record<string, unknown>, index: number) => ({
     ...post,
-    image_urls: post.display_url ? [post.display_url] : [],
+    display_url: post.display_url ?? null,
     influencer: post.influencers,
     influencers: undefined,
     is_liked: likedSet.has(post.id as string),
@@ -263,7 +263,7 @@ async function handleCreate(req: Request): Response | Promise<Response> {
   const postId = crypto.randomUUID();
 
   // 1단계: temp URL 그대로 INSERT
-  const { data, error } = await supabase
+  const { error: insertError } = await supabase
     .from("posts")
     .insert({
       id: postId,
@@ -278,15 +278,33 @@ async function handleCreate(req: Request): Response | Promise<Response> {
       post_url: instagramUrl,
       posted_at: new Date().toISOString(),
       ...(body.display_url !== undefined && { display_url: body.display_url }),
-    })
-    .select()
-    .single();
+    });
 
-  if (error) {
-    return errorResponse("insert_error", error.message, 500);
+  if (insertError) {
+    return errorResponse("insert_error", insertError.message, 500);
   }
 
-  return jsonResponse(data, 201);
+  const { data, error: fetchError } = await supabase
+    .from("posts")
+    .select(
+      "id, product_name, price, category, display_url, group_buying_start, group_buying_end, group_buying_url, likes_count, posted_at, influencers(id, username, full_name, profile_pic_url, external_url)"
+    )
+    .eq("id", postId)
+    .single();
+
+  if (fetchError || !data) {
+    return errorResponse("fetch_error", fetchError?.message ?? "Not found", 500);
+  }
+
+  const result = {
+    ...data,
+    display_url: data.display_url ?? null,
+    influencer: data.influencers,
+    influencers: undefined,
+    is_liked: false,
+  };
+
+  return jsonResponse(result, 201);
 }
 
 // ─── PUT /posts?action=update ───
@@ -428,7 +446,7 @@ async function handleSchedule(req: Request, url: URL): Promise<Response> {
 
   const result = posts.map((post: Record<string, unknown>) => ({
     ...post,
-    image_urls: post.display_url ? [post.display_url] : [],
+    display_url: post.display_url ?? null,
     influencer: post.influencers,
     influencers: undefined,
     is_liked: likedSet.has(post.id as string),
