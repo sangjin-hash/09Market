@@ -13,6 +13,7 @@ import Shared_DI
 import Shared_ReactiveX
 
 import GoogleSignIn
+import AuthenticationServices
 
 final class LoginViewController: UIViewController, FactoryModule {
     
@@ -96,8 +97,18 @@ extension LoginViewController: View {
             .disposed(by: self.disposeBag)
 
         self.appleLoginButton.rx.tap
-            .map { Reactor.Action.appleLoginTapped }
-            .bind(to: reactor.action)
+            .subscribe(onNext: { [weak self] in
+                guard let self else { return }
+
+                let appleIDProvider = ASAuthorizationAppleIDProvider()
+                let request = appleIDProvider.createRequest()
+                request.requestedScopes = [.fullName, .email]
+
+                let authorizationController = ASAuthorizationController(authorizationRequests: [request])
+                authorizationController.delegate = self
+                authorizationController.presentationContextProvider = self
+                authorizationController.performRequests()
+            })
             .disposed(by: self.disposeBag)
 
 
@@ -145,5 +156,31 @@ extension LoginViewController {
             stackView.centerXAnchor.constraint(equalTo: self.view.centerXAnchor),
             stackView.centerYAnchor.constraint(equalTo: self.view.centerYAnchor),
         ])
+    }
+}
+
+// MARK: - ASAuthorizationControllerPresentationContextProviding
+
+extension LoginViewController: ASAuthorizationControllerPresentationContextProviding {
+    func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        return self.view.window!
+    }
+}
+
+// MARK: - ASAuthorizationControllerDelegate
+
+extension LoginViewController: ASAuthorizationControllerDelegate {
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+        guard let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential,
+              let identityToken = appleIDCredential.identityToken,
+              let idToken = String(data: identityToken, encoding: .utf8) else {
+            return
+        }
+
+        self.reactor?.action.onNext(.appleLoginCompleted(idToken: idToken, nonce: ""))
+    }
+
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        print("Apple Login Error: \(error.localizedDescription)")
     }
 }
