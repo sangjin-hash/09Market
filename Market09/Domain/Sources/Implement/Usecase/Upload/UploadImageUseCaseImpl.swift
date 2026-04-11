@@ -16,7 +16,7 @@ final class UploadImageUseCaseImpl: UploadImageUseCase {
         self.uploadRepository = uploadRepository
     }
     
-    func execute(_ imageData: Data, _ mimeType: String) async throws -> String {
+    func execute(_ imageData: Data, _ mimeType: MimeType) async throws -> String {
         return try await self.uploadRepository.uploadImage(imageData, mimeType)
     }
 }

@@ -15,5 +15,5 @@ public protocol UploadRepository {
     ///   - imageData: 업로드할 이미지 바이너리
     ///   - mimeType: MIME 타입 (예: "image/jpeg", "image/png")
     /// - Returns: Supabase Storage에 저장된 이미지 Public URL
-    func uploadImage(_ imageData: Data, _ mimeType: String) async throws -> String
+    func uploadImage(_ imageData: Data, _ mimeType: MimeType) async throws -> String
 }

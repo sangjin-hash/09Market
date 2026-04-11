@@ -16,7 +16,7 @@ final class UploadRepositoryImpl: UploadRepository {
         self.remoteDataSource = remoteDataSource
     }
 
-    func uploadImage(_ imageData: Data, _ mimeType: String) async throws -> String {
-        return try await self.remoteDataSource.uploadImage(imageData, mimeType)
+    func uploadImage(_ imageData: Data, _ mimeType: MimeType) async throws -> String {
+        return try await self.remoteDataSource.uploadImage(imageData, mimeType.rawValue)
     }
 }
