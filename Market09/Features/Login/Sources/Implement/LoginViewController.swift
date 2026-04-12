@@ -13,6 +13,7 @@ import Shared_DI
 import Shared_ReactiveX
 
 import GoogleSignIn
+import AuthenticationServices
 
 final class LoginViewController: UIViewController, FactoryModule {
     
@@ -100,6 +101,26 @@ extension LoginViewController: View {
             .bind(to: reactor.action)
             .disposed(by: self.disposeBag)
 
+      // MARK: - State
+
+      reactor.pulse(\.$appleLoginHashedNonce)
+            .compactMap{ $0 }
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] hashedNonce in
+                guard let self else { return }
+
+                let appleIDProvider = ASAuthorizationAppleIDProvider()
+                let request = appleIDProvider.createRequest()
+                request.requestedScopes = [.fullName, .email]
+                request.nonce = hashedNonce
+
+                let authorizationController = ASAuthorizationController(authorizationRequests: [request])
+                authorizationController.delegate = self
+                authorizationController.presentationContextProvider = self
+                authorizationController.performRequests()
+            })
+            .disposed(by: self.disposeBag)
+
 
         // MARK: - State
 
@@ -145,5 +166,32 @@ extension LoginViewController {
             stackView.centerXAnchor.constraint(equalTo: self.view.centerXAnchor),
             stackView.centerYAnchor.constraint(equalTo: self.view.centerYAnchor),
         ])
+    }
+}
+
+// MARK: - ASAuthorizationControllerPresentationContextProviding
+
+extension LoginViewController: ASAuthorizationControllerPresentationContextProviding {
+    func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
+        return self.view.window!
+    }
+}
+
+// MARK: - ASAuthorizationControllerDelegate
+
+extension LoginViewController: ASAuthorizationControllerDelegate {
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
+        guard let appleIDCredential = authorization.credential as? ASAuthorizationAppleIDCredential,
+              let identityToken = appleIDCredential.identityToken,
+              let idToken = String(data: identityToken, encoding: .utf8) else {
+            return
+        }
+
+      guard let nonce = self.reactor?.currentState.appleLoginNonce else { return }
+        self.reactor?.action.onNext(.appleLoginCompleted(idToken: idToken, nonce: nonce))
+    }
+
+    func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
+        print("Apple Login Error: \(error.localizedDescription)")
     }
 }
