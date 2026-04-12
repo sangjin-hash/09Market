@@ -15,7 +15,7 @@ protocol UserRemoteDataSource {
     func fetchMe() async throws -> UserResponse?
 }
 
-final class UserRemoteDataSourceImpl: UserRemoteDataSource {
+final class UserRemoteDataSourceImpl: UserRemoteDataSource, RemoteDataSource {
     private let apiClient: APIClient
 
     init(apiClient: APIClient) {
@@ -39,18 +39,5 @@ extension UserRemoteDataSourceImpl {
             fatalError("API_ME가 Info.plist에 없습니다. Secrets.xcconfig을 확인하세요.")
         }
         return endpoint
-    }
-
-    @discardableResult
-    private func performRequest<T>(_ operation: () async throws -> T) async throws -> T {
-        do {
-            return try await operation()
-        } catch let error as AppError {
-            throw error
-        } catch is DecodingError {
-            throw AppError.network(.invalidResponse)
-        } catch {
-            throw AppError.unknown(message: error.localizedDescription)
-        }
     }
 }

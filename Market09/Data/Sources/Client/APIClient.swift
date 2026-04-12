@@ -15,10 +15,12 @@ public protocol APIClient {
     func get(_ endpoint: String) async throws -> Data
     func get(_ endpoint: String, queryItems: [URLQueryItem]) async throws -> Data
     func post(_ endpoint: String, body: Data?) async throws -> Data
+    func post(_ endpoint: String, queryItems: [URLQueryItem], body: Data?) async throws -> Data
     func put(_ endpoint: String, body: Data?) async throws -> Data
     func delete(_ endpoint: String) async throws -> Void
     func delete(_ endpoint: String, queryItems: [URLQueryItem]) async throws -> Void
     func patch(_ endpoint: String, body: Data?) async throws -> Data
+    func upload(_ endpoint: String, imageData: Data, mimeType: String) async throws -> Data
 }
 
 
@@ -55,6 +57,10 @@ final class APIClientImpl: APIClient, @unchecked Sendable {
         return try await request(endpoint: endpoint, method: "POST", body: body)
     }
 
+    func post(_ endpoint: String, queryItems: [URLQueryItem], body: Data?) async throws -> Data {
+        return try await request(endpoint: endpoint, method: "POST", queryItems: queryItems, body: body)
+    }
+
     func put(_ endpoint: String, body: Data?) async throws -> Data {
         return try await request(endpoint: endpoint, method: "PUT", body: body)
     }
@@ -69,6 +75,39 @@ final class APIClientImpl: APIClient, @unchecked Sendable {
 
     func patch(_ endpoint: String, body: Data?) async throws -> Data {
         return try await request(endpoint: endpoint, method: "PATCH", body: body)
+    }
+
+    func upload(_ endpoint: String, imageData: Data, mimeType: String) async throws -> Data {
+        let boundary = UUID().uuidString
+
+        guard let url = URL(string: self.baseURL + endpoint) else {
+            throw AppError.network(.invalidResponse)
+        }
+
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "POST"
+        urlRequest = self.interceptor.adapt(urlRequest)
+        urlRequest.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        urlRequest.httpBody = self.makeMultipartBody(imageData: imageData, mimeType: mimeType, boundary: boundary)
+
+        let (data, response) = try await execute(urlRequest)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw AppError.network(.invalidResponse)
+        }
+
+        switch httpResponse.statusCode {
+        case 200...299:
+            return data
+        case 401:
+            return try await retryAfterRefresh(urlRequest)
+        case 404:
+            throw AppError.network(.notFound)
+        case 500...599:
+            throw AppError.network(.serverError(statusCode: httpResponse.statusCode))
+        default:
+            throw AppError.network(.serverError(statusCode: httpResponse.statusCode))
+        }
     }
 
 
@@ -145,5 +184,31 @@ final class APIClientImpl: APIClient, @unchecked Sendable {
         } catch let error as URLError {
             throw NetworkErrorMapper.map(error)
         }
+    }
+
+    private func makeMultipartBody(imageData: Data, mimeType: String, boundary: String) -> Data {
+        var body = Data()
+        let crlf = "\r\n"
+        let ext = mimeType.components(separatedBy: "/").last ?? "jpg"
+
+        body.appendString("--\(boundary)\(crlf)")
+        body.appendString("Content-Disposition: form-data; name=\"file\"; filename=\"image.\(ext)\"\(crlf)")
+        body.appendString("Content-Type: \(mimeType)\(crlf)")
+        body.appendString(crlf)
+        body.append(imageData)
+        body.appendString(crlf)
+        body.appendString("--\(boundary)--\(crlf)")
+
+        return body
+    }
+}
+
+
+// MARK: - Data + appendString
+
+private extension Data {
+    mutating func appendString(_ string: String) {
+        guard let data = string.data(using: .utf8) else { return }
+        self.append(data)
     }
 }

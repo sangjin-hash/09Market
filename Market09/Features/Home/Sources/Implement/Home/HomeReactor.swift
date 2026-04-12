@@ -16,7 +16,6 @@ final class HomeReactor: Reactor, FactoryModule {
 
     struct Dependency {
         let fetchPostsListUseCase: FetchPostsListUseCase
-        let fetchTop10PostsUseCase: FetchTop10PostsUseCase
         let likePostUseCase: LikePostUseCase
         let cancelLikePostUseCase: CancelLikePostUseCase
         let userStore: UserStore
@@ -29,6 +28,7 @@ final class HomeReactor: Reactor, FactoryModule {
         case searchKeyword(String)
         case toggleLike(String, Bool)
         case confirmLogin
+        case tapTop10Banner
     }
 
     enum Mutation {
@@ -40,6 +40,7 @@ final class HomeReactor: Reactor, FactoryModule {
         case setLikeStatus(String, Bool)
         case setNeedsLogin
         case setLoginConfirmed
+        case setShowTop10
     }
 
     struct State {
@@ -53,6 +54,7 @@ final class HomeReactor: Reactor, FactoryModule {
         @Pulse var error: AppError?
         @Pulse var needsLogin: Bool = false
         @Pulse var loginConfirmed: Bool = false
+        @Pulse var showTop10: Bool = false
     }
 
     let initialState: State = State()
@@ -132,6 +134,9 @@ extension HomeReactor {
             
         case .confirmLogin:
             return .just(.setLoginConfirmed)
+            
+        case .tapTop10Banner:
+            return .just(.setShowTop10)
         }
     }
 
@@ -193,6 +198,9 @@ extension HomeReactor {
             
         case .setLoginConfirmed:
             newState.loginConfirmed = true
+            
+        case .setShowTop10:
+            newState.showTop10 = true
 
         case .setError(let error):
             newState.error = error

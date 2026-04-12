@@ -23,6 +23,12 @@ public protocol PostRepository {
         dateFrom: String?,
         dateTo: String?
     ) async throws -> Page<Post>
+    
+    /// 공동구매 게시글 등록
+    /// - Parameters:
+    ///   - request: PostCreateRequest
+    /// - Returns: 페이지네이션된 공동구매 게시글 목록
+    func createPost(_ post: Post) async throws -> Post
 
     /// 인기 공동구매 TOP 10
     /// - Returns: 최근 7일 내 좋아요 순 상위 10개 게시글

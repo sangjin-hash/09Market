@@ -86,7 +86,6 @@ CREATE TABLE public.posts (
   post_type TEXT,
   caption TEXT,
   display_url TEXT,
-  image_urls TEXT[],
   hashtags TEXT[],
   group_buying_start TIMESTAMPTZ,
   group_buying_end TIMESTAMPTZ,

@@ -84,5 +84,35 @@ public final class DomainAssembly: Assembly {
                 userStore: r.resolve()
             )
         }.inObjectScope(.container)
+        
+        container.register(CreatePostUseCase.self) { r in
+            CreatePostUseCaseImpl(
+                postRepository: r.resolve()
+            )
+        }.inObjectScope(.container)
+        
+        
+        // MARK: - Influencer
+        
+        container.register(RegisterInfluencerUseCase.self) { r in
+            RegisterInfluencerUseCaseImpl(
+                influencerRepository: r.resolve()
+            )
+        }.inObjectScope(.container)
+
+        container.register(SearchInfluencersUseCase.self) { r in
+            SearchInfluencersUseCaseImpl(
+                influencerRepository: r.resolve()
+            )
+        }.inObjectScope(.container)
+        
+        
+        // MARK: - Upload
+        
+        container.register(UploadImageUseCase.self) { r in
+            UploadImageUseCaseImpl(
+                uploadRepository: r.resolve()
+            )
+        }.inObjectScope(.container)
     }
 }

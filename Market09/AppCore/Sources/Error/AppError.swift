@@ -47,6 +47,10 @@ extension AppError {
         case .storage:
             return .userGuide(message: self.message)
 
+        // User Guide
+        case .network(.conflict):
+            return .userGuide(message: self.message)
+
         // Developer Error
         case .network(.notFound),
              .network(.invalidResponse):

@@ -20,6 +20,7 @@ let project = Project(
         dependencies: [
             .module(.core),
             .module(.domain),
+            .module(.util),
             .module(.designSystem),
             .module(.sharedDI),
             .module(.sharedUI),

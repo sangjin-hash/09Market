@@ -167,6 +167,12 @@ extension HomeViewController: View {
             }
             .bind(to: reactor.action.mapObserver { .selectCategory($0) })
             .disposed(by: self.disposeBag)
+        
+        self.collectionView.rx.itemSelected
+            .filter { $0.section == 1 }
+            .map { _ in Reactor.Action.tapTop10Banner }
+            .bind(to: reactor.action)
+            .disposed(by: self.disposeBag)
 
         self.collectionView.rx.willDisplayCell
             .filter { $0.at.section == 2 }

@@ -19,14 +19,11 @@ final class HomeTop10BannerCell: UICollectionViewCell, ConfiguratorModule {
 
     // MARK: - UI
 
-    private let bannerButton = UIButton(type: .system).then {
-        // TODO: 추후에 이미지 버튼으로 변경할 것
-        $0.setTitle(Strings.Home.top10Banner, for: .normal)
-        $0.setTitleColor(.white, for: .normal)
-        $0.titleLabel?.font = .systemFont(ofSize: 18, weight: .bold)
-        $0.backgroundColor = .systemOrange
-        $0.layer.cornerRadius = 16
+    private let bannerButton = UIImageView().then {
+        $0.image = UIImage(named: "top10_banner")
+        $0.contentMode = .scaleAspectFill
         $0.clipsToBounds = true
+        $0.layer.cornerRadius = 16
         $0.isUserInteractionEnabled = false
     }
 

@@ -10,6 +10,7 @@ public enum ErrorString {
         public static let notConnected    = "네트워크 연결을 확인해주세요."
         public static let timeout         = "요청 시간이 초과되었습니다. 다시 시도해주세요."
         public static let notFound        = "요청한 정보를 찾을 수 없습니다."
+        public static let conflict        = "이미 등록된 항목입니다."
         public static let serverError     = "서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
         public static let invalidResponse = "응답을 처리할 수 없습니다."
     }

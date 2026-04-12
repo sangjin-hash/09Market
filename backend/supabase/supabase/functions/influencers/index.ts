@@ -17,6 +17,10 @@ Deno.serve(async (req) => {
       return await handleRegister(req);
     }
 
+    if (req.method === "GET" && action === "search") {
+      return await handleSearch(req, url);
+    }
+
     return errorResponse("bad_request", "Unknown action or method", 400);
   } catch (e) {
     if (e && typeof e === "object" && "status" in e) {
@@ -29,6 +33,29 @@ Deno.serve(async (req) => {
     return errorResponse("internal_error", String(e), 500);
   }
 });
+
+async function handleSearch(req: Request, url: URL): Promise<Response> {
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const supabase = createSupabaseClient(authHeader);
+  await requireAuth(supabase);
+
+  const query = url.searchParams.get("username")?.trim() ?? "";
+  if (!query) {
+    return jsonResponse([], 200);
+  }
+
+  const { data, error } = await supabase
+    .from("influencers")
+    .select("id, username, full_name, profile_pic_url, external_url")
+    .ilike("username", `%${query}%`)
+    .limit(3);
+
+  if (error) {
+    return errorResponse("internal_error", error.message, 500);
+  }
+
+  return jsonResponse(data ?? [], 200);
+}
 
 async function handleRegister(req: Request): Promise<Response> {
   const authHeader = req.headers.get("Authorization") ?? "";
