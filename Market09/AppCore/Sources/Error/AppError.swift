@@ -8,6 +8,7 @@
 import Foundation
 
 public enum AppError: Error, Equatable {
+    case client(ClientErrorType)
     case network(NetworkErrorType)
     case auth(AuthErrorType)
     case storage(StorageErrorType)
@@ -44,6 +45,10 @@ extension AppError {
             return .retryable(message: self.message)
 
         // User Guide
+        case .client:
+            return .userGuide(message: self.message)
+
+        // User Guide
         case .storage:
             return .userGuide(message: self.message)
 
@@ -78,6 +83,8 @@ extension AppError {
             return true
         case .auth(.providerFailed), .auth(.rateLimited):
             return false
+        case .client:
+            return false
         case .network:
             return false
         case .storage:
@@ -89,6 +96,8 @@ extension AppError {
 
     public var message: String {
         switch self {
+        case .client(let type):
+            return type.message
         case .network(let type):
             return type.message
         case .auth(let type):

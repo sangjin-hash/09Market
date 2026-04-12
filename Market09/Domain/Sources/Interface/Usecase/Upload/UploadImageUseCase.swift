@@ -8,5 +8,5 @@
 import Foundation
 
 public protocol UploadImageUseCase {
-    func execute(_ imageData: Data, _ mimeType: String) async throws -> String
+    func execute(_ imageData: Data, _ mimeType: MimeType) async throws -> String
 }

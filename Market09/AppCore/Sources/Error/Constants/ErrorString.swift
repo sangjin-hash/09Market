@@ -22,6 +22,10 @@ public enum ErrorString {
         public static let rateLimited        = "요청이 너무 많습니다. 잠시 후 다시 시도해주세요."
     }
 
+    public enum Client {
+        public static let imageSizeLimitExceeded = "10MB 이하 사진을 선택해주세요"
+    }
+
     public enum Storage {
         public static let insufficientSpace = "기기 저장 공간이 부족합니다. 저장 공간을 확보한 후 다시 시도해주세요."
     }
