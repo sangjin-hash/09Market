@@ -64,6 +64,54 @@ final class HomeViewController: UIViewController, FactoryModule {
         return cv
     }()
 
+    private let dimOverlay = UIControl().then {
+        $0.backgroundColor = UIColor.black.withAlphaComponent(0.35)
+        $0.isHidden = true
+        $0.alpha = 0
+    }
+
+    private let fabButton = UIButton(type: .system).then {
+        $0.setImage(UIImage(systemName: "plus"), for: .normal)
+        $0.tintColor = .white
+        $0.backgroundColor = Colors.primary
+        $0.layer.cornerRadius = 28
+        $0.layer.shadowColor = UIColor.black.cgColor
+        $0.layer.shadowOpacity = 0.2
+        $0.layer.shadowOffset = CGSize(width: 0, height: 4)
+        $0.layer.shadowRadius = 8
+    }
+
+    private let fabMenuContainer = UIView().then {
+        $0.backgroundColor = .white
+        $0.layer.cornerRadius = 10
+        $0.layer.borderWidth = 1
+        $0.layer.shadowColor = UIColor.black.cgColor
+        $0.layer.shadowOpacity = 0.12
+        $0.layer.shadowOffset = CGSize(width: 0, height: 2)
+        $0.layer.shadowRadius = 8
+        $0.clipsToBounds = false
+        $0.isHidden = true
+        $0.alpha = 0
+    }
+
+    private let createPostMenuButton = UIButton(type: .custom).then {
+        $0.setTitle(Strings.CreatePost.title, for: .normal)
+        $0.setTitleColor(.label, for: .normal)
+        $0.titleLabel?.font = .systemFont(ofSize: 15)
+        $0.contentEdgeInsets = UIEdgeInsets(top: 12, left: 20, bottom: 12, right: 20)
+    }
+
+    private let registerInfluencerMenuButton = UIButton(type: .custom).then {
+        $0.setTitle(Strings.RegisterInfluencer.title, for: .normal)
+        $0.setTitleColor(.label, for: .normal)
+        $0.titleLabel?.font = .systemFont(ofSize: 15)
+        $0.contentEdgeInsets = UIEdgeInsets(top: 12, left: 20, bottom: 12, right: 20)
+    }
+
+    private let fabMenuDivider = UIView().then {
+        $0.backgroundColor = .systemGray5
+    }
+
 
     // MARK: - Lifecycle
 
@@ -76,21 +124,62 @@ final class HomeViewController: UIViewController, FactoryModule {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         self.navigationController?.setNavigationBarHidden(true, animated: animated)
+        self.reactor?.action.onNext(.refreshFABVisibility)
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+
+        self.searchBar.pin
+            .top(self.view.pin.safeArea.top + 4)
+            .horizontally(8)
+            .sizeToFit(.width)
+
+        self.collectionView.pin
+            .below(of: self.searchBar)
+            .horizontally()
+            .bottom()
+
+        self.dimOverlay.pin.all()
+
+        self.fabButton.pin
+            .bottom(self.view.pin.safeArea.bottom + 24)
+            .right(24)
+            .size(56)
+
+        let postSize = self.createPostMenuButton.intrinsicContentSize
+        let influencerSize = self.registerInfluencerMenuButton.intrinsicContentSize
+        let menuWidth = max(postSize.width, influencerSize.width)
+        let rowHeight = max(postSize.height, influencerSize.height)
+
+        self.createPostMenuButton.pin
+            .top(0).left(0)
+            .size(CGSize(width: menuWidth, height: rowHeight))
+        self.fabMenuDivider.pin
+            .below(of: self.createPostMenuButton)
+            .left(0).right(0).height(1)
+        self.registerInfluencerMenuButton.pin
+            .below(of: self.fabMenuDivider)
+            .size(CGSize(width: menuWidth, height: rowHeight))
+
+        self.fabMenuContainer.pin
+            .size(CGSize(width: menuWidth, height: rowHeight * 2 + 1))
+            .bottom(self.view.pin.safeArea.bottom + 24 + 56 + 8)
+            .right(24)
+
+        self.fabMenuContainer.layer.borderColor = UIColor.systemGray4.cgColor
     }
 
     private func setupLayout() {
         self.view.addSubview(self.searchBar)
         self.view.addSubview(self.collectionView)
+        self.view.addSubview(self.dimOverlay)
+        self.view.addSubview(self.fabMenuContainer)
+        self.view.addSubview(self.fabButton)
 
-        self.searchBar.snp.makeConstraints { make in
-            make.top.equalTo(self.view.safeAreaLayoutGuide).offset(4)
-            make.leading.trailing.equalToSuperview().inset(8)
-        }
-
-        self.collectionView.snp.makeConstraints { make in
-            make.top.equalTo(self.searchBar.snp.bottom)
-            make.leading.trailing.bottom.equalToSuperview()
-        }
+        self.fabMenuContainer.addSubview(self.createPostMenuButton)
+        self.fabMenuContainer.addSubview(self.fabMenuDivider)
+        self.fabMenuContainer.addSubview(self.registerInfluencerMenuButton)
     }
 }
 
@@ -136,6 +225,7 @@ extension HomeViewController: View {
                 }
             }
         )
+
 
         // MARK: - Action
 
@@ -185,6 +275,26 @@ extension HomeViewController: View {
             .bind(to: reactor.action)
             .disposed(by: self.disposeBag)
 
+        self.dimOverlay.rx.controlEvent(.touchUpInside)
+            .map { Reactor.Action.dismissFABMenu }
+            .bind(to: reactor.action)
+            .disposed(by: self.disposeBag)
+
+        self.fabButton.rx.tap
+            .map { Reactor.Action.tapFAB }
+            .bind(to: reactor.action)
+            .disposed(by: self.disposeBag)
+
+        self.createPostMenuButton.rx.tap
+            .map { Reactor.Action.tapCreatePost }
+            .bind(to: reactor.action)
+            .disposed(by: self.disposeBag)
+
+        self.registerInfluencerMenuButton.rx.tap
+            .map { Reactor.Action.tapRegisterInfluencer }
+            .bind(to: reactor.action)
+            .disposed(by: self.disposeBag)
+
         // MARK: - State
 
         reactor.state.map(\.sections)
@@ -192,6 +302,36 @@ extension HomeViewController: View {
             .bind(to: self.collectionView.rx.items(dataSource: dataSource))
             .disposed(by: self.disposeBag)
         
+        reactor.state.map(\.isFABVisible)
+            .distinctUntilChanged()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] visible in
+                guard let self else { return }
+                self.fabButton.isHidden = !visible
+            })
+            .disposed(by: self.disposeBag)
+
+        reactor.state.map(\.isFABMenuOpen)
+            .distinctUntilChanged()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] isOpen in
+                guard let self else { return }
+                if isOpen {
+                    self.fabMenuContainer.isHidden = false
+                    self.dimOverlay.isHidden = false
+                }
+                UIView.animate(withDuration: 0.2, animations: {
+                    self.fabMenuContainer.alpha = isOpen ? 1 : 0
+                    self.dimOverlay.alpha = isOpen ? 1 : 0
+                }, completion: { _ in
+                    if !isOpen {
+                        self.fabMenuContainer.isHidden = true
+                        self.dimOverlay.isHidden = true
+                    }
+                })
+            })
+            .disposed(by: self.disposeBag)
+
         reactor.pulse(\.$error)
             .compactMap { $0 }
             .observe(on: MainScheduler.instance)
@@ -200,7 +340,7 @@ extension HomeViewController: View {
                 ErrorDialog.show(on: self, error: error)
             })
             .disposed(by: self.disposeBag)
-        
+
         reactor.pulse(\.$needsLogin)
             .filter { $0 }
             .observe(on: MainScheduler.instance)
