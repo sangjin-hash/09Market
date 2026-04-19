@@ -8,6 +8,7 @@
 import UIKit
 
 import AppCore
+import Domain
 import Home
 import Shared_DI
 import Shared_ReactiveX
@@ -23,13 +24,12 @@ final class HomeCoordinatorImpl: HomeCoordinator {
     // MARK: - Delegate
 
     public weak var delegate: HomeCoordinatorDelegate?
-    
-    
-    // MARK: - Reactor
-    
+
+
+    // MARK: - Properties
+
     private let homeViewController: HomeViewController
-    private let homeTop10ViewController: HomeTop10ViewController
-    private let homeCreatePostController: HomeCreatePostViewController
+    private let resolver: Resolver
     private let disposeBag = DisposeBag()
 
 
@@ -38,13 +38,11 @@ final class HomeCoordinatorImpl: HomeCoordinator {
     public init(
         navigationController: UINavigationController,
         homeViewController: HomeViewController,
-        homeTop10ViewController: HomeTop10ViewController,
-        homeCreatePostController: HomeCreatePostViewController
+        resolver: Resolver
     ) {
         self.navigationController = navigationController
         self.homeViewController = homeViewController
-        self.homeTop10ViewController = homeTop10ViewController
-        self.homeCreatePostController = homeCreatePostController
+        self.resolver = resolver
     }
 
 
@@ -82,18 +80,41 @@ final class HomeCoordinatorImpl: HomeCoordinator {
 
         self.navigationController.pushViewController(self.homeViewController, animated: true)
     }
-    
-    
+
+
     // MARK: - Top10
-    
-    func showTop10() {
-        self.navigationController.pushViewController(self.homeTop10ViewController, animated: true)
+
+    private func showTop10() {
+        let coordinator = self.resolver.resolve(
+            HomeTop10Coordinator.self,
+            argument: self.navigationController
+        )!
+        self.addChild(coordinator)
+        coordinator.start()
     }
-    
-    
+
+
     // MARK: - CreatePost
-    
-    func showCreatePost() {
-        self.navigationController.present(self.homeCreatePostController, animated: true)
+
+    private func showCreatePost() {
+        let coordinator = self.resolver.resolve(
+            HomeCreatePostCoordinator.self,
+            argument: self.navigationController
+        )!
+        coordinator.delegate = self
+        self.addChild(coordinator)
+        coordinator.start()
+    }
+}
+
+
+// MARK: - HomeCreatePostCoordinatorDelegate
+
+extension HomeCoordinatorImpl: HomeCreatePostCoordinatorDelegate {
+    func createPostDidComplete(post: Post) {}
+
+    func createPostCoordinatorDidFinish() {
+        guard let coordinator = self.childCoordinators.first(where: { $0 is HomeCreatePostCoordinator }) else { return }
+        self.removeChild(coordinator)
     }
 }

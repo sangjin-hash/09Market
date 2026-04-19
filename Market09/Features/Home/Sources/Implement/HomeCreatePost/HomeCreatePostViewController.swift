@@ -25,7 +25,6 @@ final class HomeCreatePostViewController: UIViewController, FactoryModule {
     }
 
     var disposeBag = DisposeBag()
-    var onSubmitSuccess: ((Post) -> Void)?
 
     required init(dependency: Dependency, payload: Void) {
         super.init(nibName: nil, bundle: nil)
@@ -415,16 +414,6 @@ extension HomeCreatePostViewController: View {
             .subscribe(onNext: { [weak self] error in
                 guard let self else { return }
                 ErrorDialog.show(on: self, error: error)
-            })
-            .disposed(by: self.disposeBag)
-
-        reactor.pulse(\.$submitSuccess)
-            .compactMap { $0 }
-            .observe(on: MainScheduler.instance)
-            .subscribe(onNext: { [weak self] post in
-                guard let self else { return }
-                self.onSubmitSuccess?(post)
-                self.dismiss(animated: true)
             })
             .disposed(by: self.disposeBag)
 
