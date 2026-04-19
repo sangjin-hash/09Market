@@ -36,8 +36,7 @@ final class HomeCreatePostReactor: Reactor, FactoryModule {
         case selectStartDate(Date)
         case selectEndDate(Date)
         
-        // 화면 닫힘 & 생성 요청
-        case tapClose
+        // 생성 요청
         case tapSubmit
     }
     
@@ -63,8 +62,7 @@ final class HomeCreatePostReactor: Reactor, FactoryModule {
         case setStartDate(Date?)
         case setEndDate(Date?)
         
-        // 화면 닫힘 & 생성 요청
-        case setDismiss
+        // 생성 요청
         case setSubmitSuccess(Post)
     }
     
@@ -72,7 +70,6 @@ final class HomeCreatePostReactor: Reactor, FactoryModule {
         // 화면 기본 상태
         var isLoading: Bool = false
         @Pulse var error: AppError?
-        @Pulse var dismiss: Bool = false
         @Pulse var submitSuccess: Post?
         
         // 인플루언서 검색 및 설정
@@ -216,9 +213,6 @@ extension HomeCreatePostReactor {
             ])
 
 
-        // 닫기
-        case .tapClose:
-            return .just(.setDismiss)
         }
     }
 
@@ -281,9 +275,6 @@ extension HomeCreatePostReactor {
 
         case .setSubmitSuccess(let post):
             newState.submitSuccess = post
-
-        case .setDismiss:
-            newState.dismiss = true
         }
 
         newState.isSubmitEnabled =

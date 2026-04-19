@@ -34,6 +34,12 @@ final class HomeCreatePostViewController: UIViewController, FactoryModule {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
+    
+    
+    // MARK: - CellType
+    
+    static let influencerCell = ReusableCell<HomeCreatePostInfluencerCell>()
+    static let influencerEmptyCell = ReusableCell<HomeCreatePostInfluencerEmptyCell>()
 
 
     // MARK: - UI
@@ -54,6 +60,23 @@ final class HomeCreatePostViewController: UIViewController, FactoryModule {
     private let influencerTextField = HomeCreatePostViewController.makeTextField(
         placeholder: Strings.CreatePost.influencerPlaceholder
     )
+    
+    private lazy var influencerDropdownView: UICollectionView = {
+        let cv = UICollectionView(
+            frame: .zero,
+            collectionViewLayout: UICollectionViewCompositionalLayout.list(
+                using: UICollectionLayoutListConfiguration(appearance: .plain)
+            )
+        )
+        cv.isHidden = true
+        cv.layer.cornerRadius = 12
+        cv.layer.borderWidth = 1
+        cv.layer.borderColor = UIColor.systemGray4.cgColor
+        cv.clipsToBounds = true
+        cv.register(Self.influencerCell)
+        cv.register(Self.influencerEmptyCell)
+        return cv
+    }()
 
     private let imageSectionHeader = HomeCreatePostViewController.makeSectionHeader(
         icon: "square.and.arrow.up",
@@ -185,6 +208,14 @@ final class HomeCreatePostViewController: UIViewController, FactoryModule {
 
         self.scrollView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: 16, right: 0)
         self.scrollView.verticalScrollIndicatorInsets = self.scrollView.contentInset
+        
+        let frame = self.influencerTextField.convert(
+            self.influencerTextField.bounds, to: self.view
+        )
+        self.influencerDropdownView.pin
+            .top(frame.maxY + 4)
+            .horizontally(16)
+            .height(self.influencerDropdownView.frame.height)
 
         self.contentView.pin
             .top()
@@ -218,6 +249,7 @@ final class HomeCreatePostViewController: UIViewController, FactoryModule {
     private func setupLayout() {
         self.view.addSubview(self.scrollView)
         self.view.addSubview(self.submitButton)
+        self.view.addSubview(self.influencerDropdownView)
 
         self.scrollView.addSubview(self.contentView)
 
@@ -286,6 +318,16 @@ extension HomeCreatePostViewController: View {
             .skip(1)
             .debounce(.milliseconds(300), scheduler: MainScheduler.instance)
             .map { Reactor.Action.searchInfluencerKeyword($0) }
+            .bind(to: reactor.action)
+            .disposed(by: self.disposeBag)
+        
+        self.influencerDropdownView.rx.itemSelected
+            .withLatestFrom(reactor.state) { indexPath, state in
+                guard !state.influencerResult.isEmpty else { return nil as Influencer? }
+                return state.influencerResult[indexPath.item]
+            }
+            .compactMap { $0 }
+            .map { Reactor.Action.selectInfluencer($0) }
             .bind(to: reactor.action)
             .disposed(by: self.disposeBag)
 
@@ -359,6 +401,49 @@ extension HomeCreatePostViewController: View {
                 self.submitButton.alpha = isEnabled ? 1.0 : 0.5
             })
             .disposed(by: self.disposeBag)
+        
+        reactor.state
+            .map { $0.influencerKeyword }
+            .distinctUntilChanged()
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] keyword in
+                guard let self else { return }
+                self.influencerTextField.text = keyword
+            })
+            .disposed(by: self.disposeBag)
+        
+        let dropdownItems = reactor.state
+            .map { state -> [InfluencerDropdownItem] in
+                guard !state.influencerKeyword.isEmpty else { return [] }
+                guard state.selectedInfluencer == nil else { return [] }
+                return state.influencerResult.isEmpty
+                    ? [.empty]
+                    : state.influencerResult.map { .result($0) }
+            }
+            .share(replay: 1)
+
+        dropdownItems
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] items in
+                guard let self else { return }
+                self.influencerDropdownView.isHidden = items.isEmpty
+                self.influencerDropdownView.pin.height(CGFloat(items.count) * 52)
+            })
+            .disposed(by: self.disposeBag)
+
+        dropdownItems
+            .bind(to: self.influencerDropdownView.rx.items) { cv, index, item in
+                let indexPath = IndexPath(item: index, section: 0)
+                switch item {
+                case .result(let influencer):
+                    let cell = cv.dequeue(Self.influencerCell, for: indexPath)
+                    cell.configure(dependency: .init(), payload: .init(influencer: influencer))
+                    return cell
+                case .empty:
+                    return cv.dequeue(Self.influencerEmptyCell, for: indexPath)
+                }
+            }
+            .disposed(by: self.disposeBag)
 
         reactor.state
             .map { $0.selectedInfluencer }
@@ -417,15 +502,6 @@ extension HomeCreatePostViewController: View {
             })
             .disposed(by: self.disposeBag)
 
-        reactor.pulse(\.$dismiss)
-            .filter { $0 }
-            .observe(on: MainScheduler.instance)
-            .subscribe(onNext: { [weak self] _ in
-                guard let self else { return }
-                self.dismiss(animated: true)
-            })
-            .disposed(by: self.disposeBag)
-
         reactor.pulse(\.$openImagePicker)
             .filter { $0 }
             .observe(on: MainScheduler.instance)
@@ -444,6 +520,11 @@ private extension HomeCreatePostViewController {
 
     enum DateType { case start, end }
 
+    enum InfluencerDropdownItem {
+        case result(Influencer)
+        case empty
+    }
+
     var hasActiveTextField: Bool {
         return self.influencerTextField.isFirstResponder
             || self.productNameTextField.isFirstResponder
@@ -453,7 +534,12 @@ private extension HomeCreatePostViewController {
     func dismissKeyboardThenExecute(_ action: @escaping () -> Void) {
         let needsDelay = self.hasActiveTextField
         self.view.endEditing(true)
-        DispatchQueue.main.asyncAfter(deadline: .now() + (needsDelay ? 0.3 : 0)) {
+        guard needsDelay else {
+            action()
+            return
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(300))
             action()
         }
     }
@@ -605,13 +691,15 @@ extension HomeCreatePostViewController: PHPickerViewControllerDelegate {
         picker.dismiss(animated: true)
         guard let result = results.first else { return }
 
-        result.itemProvider.loadObject(ofClass: UIImage.self) { [weak self] object, _ in
-            guard let self, let image = object as? UIImage else { return }
-            guard let data = image.jpegData(compressionQuality: 0.85) else { return }
-            DispatchQueue.main.async {
-                guard let reactor = self.reactor else { return }
-                reactor.action.onNext(.didSelectImage(data, .jpeg))
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            let image: UIImage? = await withCheckedContinuation { continuation in
+                result.itemProvider.loadObject(ofClass: UIImage.self) { object, _ in
+                    continuation.resume(returning: object as? UIImage)
+                }
             }
+            guard let image, let data = image.jpegData(compressionQuality: 0.85) else { return }
+            self.reactor?.action.onNext(.didSelectImage(data, .jpeg))
         }
     }
 }

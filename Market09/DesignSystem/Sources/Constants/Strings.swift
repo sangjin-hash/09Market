@@ -70,6 +70,7 @@ public enum Strings {
         public static let datePlaceholder = "연도. 월. 일."
         public static let submitButton = "공구 등록하기"
         public static let imageFileSizeError = "10MB 이내 파일만 선택 가능합니다"
+        public static let influencerSearchEmpty = "검색 결과가 없습니다"
     }
 
     public enum RegisterInfluencer {
