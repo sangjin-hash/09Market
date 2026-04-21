@@ -51,6 +51,8 @@ public final class AuthLocalDataSourceImpl: AuthLocalDataSource {
             try self.keychainClient.save(key: Constants.KeychainKey.refreshToken, data: refreshData)
         } catch let error as KeychainError {
             throw KeychainErrorMapper.map(error)
+        } catch {
+            throw AppError.unknown(message: error.localizedDescription)
         }
     }
 
@@ -70,6 +72,8 @@ public final class AuthLocalDataSourceImpl: AuthLocalDataSource {
             try self.keychainClient.deleteAll()
         } catch let error as KeychainError {
             throw KeychainErrorMapper.map(error)
+        } catch {
+            throw AppError.unknown(message: error.localizedDescription)
         }
     }
 
@@ -82,6 +86,8 @@ public final class AuthLocalDataSourceImpl: AuthLocalDataSource {
             try self.keychainClient.save(key: Constants.KeychainKey.isAnonymous, data: data)
         } catch let error as KeychainError {
             throw KeychainErrorMapper.map(error)
+        } catch {
+            throw AppError.unknown(message: error.localizedDescription)
         }
     }
 

@@ -3,6 +3,7 @@ import { jsonResponse, errorResponse } from "../_shared/response.ts";
 import { createSupabaseClient, requireAuth } from "../_shared/auth.ts";
 import { requireFields } from "../_shared/validation.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { AppErrorCode } from "../_shared/errorCodes.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -75,7 +76,7 @@ async function handleRegister(req: Request): Promise<Response> {
     .single();
 
   if (existing) {
-    return errorResponse("already_registered", "Already registered", 409);
+    return errorResponse(AppErrorCode.INFLUENCER_CONFLICT, "Already registered", 409);
   }
 
   // 2. influencer_suggestions INSERT (UNIQUE 제약으로 동시성 제어)
@@ -92,7 +93,7 @@ async function handleRegister(req: Request): Promise<Response> {
       .single();
 
     if (suggestion?.status === "completed") {
-      return errorResponse("already_registered", "Already registered", 409);
+      return errorResponse(AppErrorCode.INFLUENCER_CONFLICT, "Already registered", 409);
     }
     // processing or failed → 이미 접수됨
     return jsonResponse({ status: "processing" }, 200);

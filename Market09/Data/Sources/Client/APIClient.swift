@@ -99,21 +99,30 @@ final class APIClientImpl: APIClient, @unchecked Sendable {
         switch httpResponse.statusCode {
         case 200...299:
             return data
+        case 400:
+            throw AppError.network(.badRequest)
         case 401:
             return try await retryAfterRefresh(urlRequest)
         case 404:
             throw AppError.network(.notFound)
+        case 409:
+            let errorCode = Self.parseErrorCode(from: data)
+            throw AppError.network(.conflict(ServerErrorCode(code: errorCode)))
+        case 429:
+            throw AppError.network(.rateLimited)
         case 500...599:
             throw AppError.network(.serverError(statusCode: httpResponse.statusCode))
         default:
-            throw AppError.network(.serverError(statusCode: httpResponse.statusCode))
+            throw AppError.network(.invalidResponse)
         }
     }
+}
 
 
-    // MARK: - Private
+// MARK: - Private
 
-    private func request(
+private extension APIClientImpl {
+    func request(
         endpoint: String,
         method: String,
         queryItems: [URLQueryItem] = [],
@@ -147,22 +156,32 @@ final class APIClientImpl: APIClient, @unchecked Sendable {
         case 200...299:
             return data
 
+        case 400:
+            throw AppError.network(.badRequest)
+
         case 401:
             return try await retryAfterRefresh(urlRequest)
 
         case 404:
             throw AppError.network(.notFound)
 
+        case 409:
+            let errorCode = Self.parseErrorCode(from: data)
+            throw AppError.network(.conflict(ServerErrorCode(code: errorCode)))
+
+        case 429:
+            throw AppError.network(.rateLimited)
+
         case 500...599:
             throw AppError.network(.serverError(statusCode: httpResponse.statusCode))
 
         default:
-            throw AppError.network(.serverError(statusCode: httpResponse.statusCode))
+            throw AppError.network(.invalidResponse)
         }
     }
 
     /// 401 응답 시 토큰 리프레시 후 1회 재시도
-    private func retryAfterRefresh(_ originalRequest: URLRequest) async throws -> Data {
+    func retryAfterRefresh(_ originalRequest: URLRequest) async throws -> Data {
         try await self.interceptor.refreshToken()
 
         var retryRequest = originalRequest
@@ -178,7 +197,7 @@ final class APIClientImpl: APIClient, @unchecked Sendable {
         return data
     }
 
-    private func execute(_ request: URLRequest) async throws -> (Data, URLResponse) {
+    func execute(_ request: URLRequest) async throws -> (Data, URLResponse) {
         do {
             return try await self.session.data(for: request)
         } catch let error as URLError {
@@ -186,7 +205,16 @@ final class APIClientImpl: APIClient, @unchecked Sendable {
         }
     }
 
-    private func makeMultipartBody(imageData: Data, mimeType: String, boundary: String) -> Data {
+    /// Response body의 "error" 필드에서 서버 에러 코드 파싱
+    static func parseErrorCode(from data: Data) -> String {
+        guard let json = try? JSONDecoder().decode([String: String].self, from: data),
+              let code = json["error"] else {
+            return ""
+        }
+        return code
+    }
+
+    func makeMultipartBody(imageData: Data, mimeType: String, boundary: String) -> Data {
         var body = Data()
         let crlf = "\r\n"
         let ext = mimeType.components(separatedBy: "/").last ?? "jpg"
