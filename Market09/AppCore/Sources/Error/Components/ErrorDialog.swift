@@ -1,6 +1,6 @@
 //
 //  ErrorDialog.swift
-//  Core
+//  AppCore
 //
 //  Created by Sangjin Lee
 //
@@ -10,40 +10,6 @@ import UIKit
 import DesignSystem
 
 public enum ErrorDialog {
-    /// AppError의 handleStrategy에 따라 적절한 다이얼로그를 표시
-    public static func show(
-        on viewController: UIViewController,
-        error: AppError,
-        retryAction: (() -> Void)? = nil,
-        loginAction: (() -> Void)? = nil
-    ) {
-        switch error.handleStrategy {
-        case .retryable(let message):
-            if let retryAction {
-                showRetryAlert(on: viewController, message: message, retryAction: retryAction)
-            } else {
-                showConfirmAlert(on: viewController, message: message)
-            }
-
-        case .userGuide(let message):
-            showConfirmAlert(on: viewController, message: message)
-
-        case .requireLogin(let message):
-            showConfirmAlert(on: viewController, message: message, confirmAction: loginAction)
-
-        case .developerError:
-            assertionFailure("[Developer Error] \(error)")
-
-        case .silent:
-            print("[AppError] \(error.message)")
-        }
-    }
-}
-
-
-// MARK: - Private
-
-private extension ErrorDialog {
     static func showRetryAlert(
         on viewController: UIViewController,
         message: String,

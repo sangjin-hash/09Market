@@ -1,6 +1,6 @@
 //
 //  StorageErrorType.swift
-//  Core
+//  AppCore
 //
 //  Created by Sangjin Lee
 //

@@ -1,15 +1,26 @@
 //
 //  NetworkErrorType.swift
-//  Core
+//  AppCore
 //
 //  Created by Sangjin Lee
 //
 
 public enum NetworkErrorType: Equatable {
+
+    // MARK: - 연결 관련
+
     case notConnected
     case timeout
+    case cancelled
+    case connectionLost
+    case sslError
+
+    // MARK: - HTTP 응답 관련
+
+    case badRequest
+    case conflict(ServerErrorCode)
+    case rateLimited
     case notFound
-    case conflict
     case serverError(statusCode: Int)
     case invalidResponse
 
@@ -19,10 +30,20 @@ public enum NetworkErrorType: Equatable {
             return ErrorString.Network.notConnected
         case .timeout:
             return ErrorString.Network.timeout
+        case .cancelled:
+            return ""
+        case .connectionLost:
+            return ErrorString.Network.connectionLost
+        case .sslError:
+            return ErrorString.Network.sslError
+        case .badRequest:
+            return ""
+        case .conflict(let code):
+            return code.message
+        case .rateLimited:
+            return ErrorString.Network.rateLimited
         case .notFound:
             return ErrorString.Network.notFound
-        case .conflict:
-            return ErrorString.Network.conflict
         case .serverError:
             return ErrorString.Network.serverError
         case .invalidResponse:

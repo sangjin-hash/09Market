@@ -1,6 +1,6 @@
 //
 //  AppError.swift
-//  Core
+//  AppCore
 //
 //  Created by Sangjin Lee
 //
@@ -34,9 +34,13 @@ extension AppError {
 
     public var handleStrategy: HandleStrategy {
         switch self {
-        // Retryable
+
+        // MARK: - Retryable
+
         case .network(.notConnected),
              .network(.timeout),
+             .network(.connectionLost),
+             .network(.rateLimited),
              .network(.serverError):
             return .retryable(message: self.message)
 
@@ -44,31 +48,36 @@ extension AppError {
              .auth(.rateLimited):
             return .retryable(message: self.message)
 
-        // User Guide
+        // MARK: - User Guide
+
         case .client:
             return .userGuide(message: self.message)
 
-        // User Guide
         case .storage:
             return .userGuide(message: self.message)
 
-        // User Guide
-        case .network(.conflict):
+        case .network(.conflict),
+             .network(.sslError):
             return .userGuide(message: self.message)
 
-        // Developer Error
-        case .network(.notFound),
-             .network(.invalidResponse):
-            return .developerError
+        // MARK: - Require Login
 
-        // Silent
-        case .unknown:
-            return .silent
-
-        // 세션만료/인증실패 -> 로그인 화면 이동
         case .auth(.sessionExpired),
              .auth(.invalidCredentials):
             return .requireLogin(message: self.message)
+
+        // MARK: - Developer Error
+
+        case .network(.notFound),
+             .network(.invalidResponse),
+             .network(.badRequest):
+            return .developerError
+
+        // MARK: - Silent
+
+        case .network(.cancelled),
+             .unknown:
+            return .silent
         }
     }
 }
