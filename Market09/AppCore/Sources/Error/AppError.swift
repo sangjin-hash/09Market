@@ -43,6 +43,9 @@ extension AppError {
              .auth(.rateLimited):
             return .retryable(message: self.message)
 
+        case .auth(.appleLoginFailed):
+            return .userGuide(message: self.message)
+
         // User Guide
         case .storage:
             return .userGuide(message: self.message)
@@ -76,7 +79,7 @@ extension AppError {
         switch self {
         case .auth(.sessionExpired), .auth(.invalidCredentials):
             return true
-        case .auth(.providerFailed), .auth(.rateLimited):
+        case .auth(.providerFailed), .auth(.rateLimited), .auth(.appleLoginFailed):
             return false
         case .network:
             return false

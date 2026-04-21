@@ -191,6 +191,7 @@ extension LoginViewController: ASAuthorizationControllerDelegate {
     }
 
     func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
-        print("Apple Login Error: \(error.localizedDescription)")
+        if (error as? ASAuthorizationError)?.code == .canceled { return }
+        self.reactor?.action.onNext(.appleLoginFailed)
     }
 }

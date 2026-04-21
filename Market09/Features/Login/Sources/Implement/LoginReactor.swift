@@ -22,6 +22,7 @@ final class LoginReactor: Reactor, FactoryModule {
         case googleLoginCompleted(idToken: String)
         case googleLoginFailed
         case appleLoginTapped
+        case appleLoginFailed
         case appleLoginCompleted(idToken: String, nonce: String)
     }
     
@@ -75,6 +76,9 @@ extension LoginReactor {
             let nonce = NonceGenerator.randomNonceString()
             let hashedNonce = NonceGenerator.sha256(nonce)
             return .just(.setAppleLoginNonce(raw: nonce, hashed: hashedNonce))
+
+        case .appleLoginFailed:
+            return .just(.setError(AppError.auth(.appleLoginFailed)))
             
         case .appleLoginCompleted(let idToken, let nonce):
             return Observable.concat([

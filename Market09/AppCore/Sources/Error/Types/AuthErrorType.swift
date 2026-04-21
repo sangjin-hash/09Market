@@ -9,6 +9,7 @@ public enum AuthErrorType: Equatable {
     case sessionExpired
     case invalidCredentials
     case providerFailed
+    case appleLoginFailed
     case rateLimited
 
     public var message: String {
@@ -19,6 +20,8 @@ public enum AuthErrorType: Equatable {
             return ErrorString.Auth.invalidCredentials
         case .providerFailed:
             return ErrorString.Auth.providerFailed
+        case .appleLoginFailed:
+            return ErrorString.Auth.appleLoginFailed
         case .rateLimited:
             return ErrorString.Auth.rateLimited
         }
