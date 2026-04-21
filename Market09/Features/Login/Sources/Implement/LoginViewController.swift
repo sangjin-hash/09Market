@@ -121,7 +121,7 @@ extension LoginViewController: View {
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] error in
                 guard let self else { return }
-                ErrorDialog.show(on: self, error: error)
+                ErrorHandler.handle(error: error, on: self)
             })
             .disposed(by: self.disposeBag)
     }

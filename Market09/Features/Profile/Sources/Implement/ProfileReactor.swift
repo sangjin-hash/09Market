@@ -21,7 +21,6 @@ final class ProfileReactor: Reactor, FactoryModule {
     enum Action {
         case viewDidAppear
         case loginButtonTapped
-        case loginRequired
         case logoutButtonTapped
         case deleteAccountTapped
     }
@@ -29,7 +28,6 @@ final class ProfileReactor: Reactor, FactoryModule {
     enum Mutation {
         case setUser(User?)
         case setLoginRequested
-        case setLoginRequired
         case setLoading(Bool)
         case setError(AppError?)
     }
@@ -39,7 +37,6 @@ final class ProfileReactor: Reactor, FactoryModule {
         var isLoggedIn: Bool = false
         var isLoading: Bool = false
         @Pulse var loginRequested: Void?
-        @Pulse var loginRequired: Void?
         @Pulse var error: AppError?
     }
 
@@ -66,9 +63,6 @@ extension ProfileReactor {
 
         case .loginButtonTapped:
             return .just(.setLoginRequested)
-
-        case .loginRequired:
-            return .just(.setLoginRequired)
 
         case .logoutButtonTapped:
             guard let provider = self.dependency.userStore.currentUser.value?.provider else {
@@ -105,9 +99,6 @@ extension ProfileReactor {
             
         case .setLoginRequested:
             newState.loginRequested = Void()
-
-        case .setLoginRequired:
-            newState.loginRequired = Void()
 
         case .setLoading(let value):
             newState.isLoading = value

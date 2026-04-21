@@ -159,11 +159,13 @@ extension ProfileViewController: View {
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] error in
                 guard let self else { return }
-                ErrorDialog.show(
-                    on: self,
+                ErrorHandler.handle(
                     error: error,
-                    loginAction: { [weak self] in
-                        self?.reactor?.action.onNext(.loginRequired)
+                    on: self,
+                    action: { [weak self] in
+                        guard let self else { return }
+                        guard let reactor = self.reactor else { return }
+                        reactor.action.onNext(.logoutButtonTapped)
                     }
                 )
             })
