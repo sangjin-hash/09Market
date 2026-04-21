@@ -11,9 +11,9 @@ enum KeychainErrorMapper {
     static func map(_ error: KeychainError) -> AppError {
         switch error {
         case .saveFailed:
-            return .storage(.saveFailed)
+            return .keychain(.saveFailed)
         case .deleteFailed:
-            return .storage(.deleteFailed)
+            return .keychain(.deleteFailed)
         }
     }
 }

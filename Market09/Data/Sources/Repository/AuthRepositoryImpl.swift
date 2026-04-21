@@ -52,7 +52,7 @@ public final class AuthRepositoryImpl: AuthRepository {
 
     public func refreshToken() async throws -> AuthToken {
         guard let token = self.localDataSource.loadToken() else {
-            throw AppError.storage(.notFound)
+            throw AppError.keychain(.notFound)
         }
         
         let response = try await self.remoteDataSource.refreshToken(token.refreshToken)

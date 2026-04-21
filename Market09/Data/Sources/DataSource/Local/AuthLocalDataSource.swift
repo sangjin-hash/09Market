@@ -43,7 +43,7 @@ public final class AuthLocalDataSourceImpl: AuthLocalDataSource {
     public func saveTokens(accessToken: String, refreshToken: String) throws {
         guard let accessData = accessToken.data(using: .utf8),
               let refreshData = refreshToken.data(using: .utf8) else {
-            throw AppError.storage(.saveFailed)
+            throw AppError.keychain(.saveFailed)
         }
 
         do {
@@ -79,7 +79,7 @@ public final class AuthLocalDataSourceImpl: AuthLocalDataSource {
 
     public func saveAnonymousFlag(_ isAnonymous: Bool) throws {
         guard let data = String(isAnonymous).data(using: .utf8) else {
-            throw AppError.storage(.saveFailed)
+            throw AppError.keychain(.saveFailed)
         }
         
         do {

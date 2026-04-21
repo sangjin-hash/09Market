@@ -19,8 +19,8 @@ public enum ErrorString {
 
     public enum Auth {
         public static let sessionExpired     = "세션이 만료되었습니다. 다시 로그인해주세요."
-        public static let invalidCredentials = "인증 정보가 올바르지 않습니다."
-        public static let providerFailed     = "인증 처리 중 오류가 발생했습니다."
+        public static let invalidCredentials = "인증 정보가 올바르지 않습니다. 다시 로그인해주세요."
+        public static let providerFailed     = "인증 처리 중 오류가 발생했습니다. 다시 로그인해주세요."
         public static let rateLimited        = "요청이 너무 많습니다. 잠시 후 다시 시도해주세요."
     }
 
@@ -30,8 +30,9 @@ public enum ErrorString {
         public static let invalidImageFormat        = "지원하지 않는 이미지 형식입니다."
     }
 
-    public enum Storage {
-        public static let insufficientSpace = "기기 저장 공간이 부족합니다. 저장 공간을 확보한 후 다시 시도해주세요."
+    public enum Keychain {
+        public static let saveFailed = "인증 정보를 저장하는데 실패했습니다. 기기 저장 공간을 확인하거나 앱을 재시작해주세요."
+        public static let notFound   = "로그인 정보를 찾을 수 없습니다. 다시 로그인해주세요."
     }
 
     public enum Server {
