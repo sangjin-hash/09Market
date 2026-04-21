@@ -36,4 +36,11 @@ public enum Formatters {
         formatter.numberStyle = .decimal
         return formatter
     }()
+
+    /// 공구 등록 화면 날짜 표시용 포맷터 (예: 2025. 4. 15.)
+    public static let createPostDate: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy. M. d."
+        return formatter
+    }()
 }

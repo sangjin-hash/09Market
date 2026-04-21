@@ -1,6 +1,6 @@
 //
 //  AppError.swift
-//  Core
+//  AppCore
 //
 //  Created by Sangjin Lee
 //
@@ -11,7 +11,7 @@ public enum AppError: Error, Equatable {
     case client(ClientErrorType)
     case network(NetworkErrorType)
     case auth(AuthErrorType)
-    case storage(StorageErrorType)
+    case keychain(KeychainErrorType)
     case unknown(message: String)
 }
 
@@ -34,41 +34,47 @@ extension AppError {
 
     public var handleStrategy: HandleStrategy {
         switch self {
-        // Retryable
+
+        // MARK: - Retryable
+
         case .network(.notConnected),
              .network(.timeout),
-             .network(.serverError):
+             .network(.connectionLost):
             return .retryable(message: self.message)
 
-        case .auth(.providerFailed),
-             .auth(.rateLimited):
-            return .retryable(message: self.message)
+        // MARK: - User Guide
 
-        // User Guide
-        case .client:
+        case .client,
+             .keychain(.saveFailed),
+             .auth(.providerFailed),
+             .auth(.rateLimited),
+             .network(.rateLimited),
+             .network(.serverError),
+             .network(.conflict):
             return .userGuide(message: self.message)
 
-        // User Guide
-        case .storage:
-            return .userGuide(message: self.message)
+        // MARK: - Require Login
 
-        // User Guide
-        case .network(.conflict):
-            return .userGuide(message: self.message)
+        case .auth(.sessionExpired),
+             .auth(.invalidCredentials),
+             .keychain(.notFound):
+            return .requireLogin(message: self.message)
 
-        // Developer Error
+        // MARK: - Developer Error
+
         case .network(.notFound),
-             .network(.invalidResponse):
+             .network(.invalidResponse),
+             .network(.badRequest),
+             .network(.sslError):
             return .developerError
 
-        // Silent
-        case .unknown:
-            return .silent
+        // MARK: - Silent
 
-        // 세션만료/인증실패 -> 로그인 화면 이동
-        case .auth(.sessionExpired),
-             .auth(.invalidCredentials):
-            return .requireLogin(message: self.message)
+        case .network(.cancelled),
+             .keychain(.loadFailed),
+             .keychain(.deleteFailed),
+             .unknown:
+            return .silent
         }
     }
 }
@@ -77,21 +83,9 @@ extension AppError {
 // MARK: - Properties
 
 extension AppError {
+    /// 앱 실행 시 인증/인가 과정에서 재인증 관련 로직 처리할 때 사용되는 분기
     public var isRequireReAuth: Bool {
-        switch self {
-        case .auth(.sessionExpired), .auth(.invalidCredentials):
-            return true
-        case .auth(.providerFailed), .auth(.rateLimited):
-            return false
-        case .client:
-            return false
-        case .network:
-            return false
-        case .storage:
-            return false
-        case .unknown:
-            return false
-        }
+        return self == .auth(.sessionExpired) || self == .auth(.invalidCredentials)
     }
 
     public var message: String {
@@ -102,7 +96,7 @@ extension AppError {
             return type.message
         case .auth(let type):
             return type.message
-        case .storage(let type):
+        case .keychain(let type):
             return type.message
         case .unknown(let message):
             return message

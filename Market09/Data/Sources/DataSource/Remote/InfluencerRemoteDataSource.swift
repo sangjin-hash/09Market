@@ -13,7 +13,7 @@ protocol InfluencerRemoteDataSource {
     /// POST — 인플루언서 등록
     /// - Parameters:
     ///   - username: 인플루언서 ID
-    /// - Throws: `AppError.network(.conflict)` 이미 등록된 경우
+    /// - Throws: `AppError.network(.conflict(ServerErrorCode))` 이미 등록된 경우
     func registerInfluencer(_ username: String) async throws
 
     /// GET — username 포함 검색 (최대 3개)
@@ -23,7 +23,7 @@ protocol InfluencerRemoteDataSource {
     func searchInfluencers(_ username: String) async throws -> [InfluencerResponse]
 }
 
-final class InfluencerRemoteDataSourceImpl: InfluencerRemoteDataSource {
+final class InfluencerRemoteDataSourceImpl: InfluencerRemoteDataSource, RemoteDataSource {
     private let apiClient: APIClient
 
     init(apiClient: APIClient) {
@@ -58,21 +58,6 @@ extension InfluencerRemoteDataSourceImpl {
             fatalError("API_INFLUENCER가 Info.plist에 없습니다. Secrets.xcconfig을 확인하세요.")
         }
         return endpoint
-    }
-
-    @discardableResult
-    func performRequest<T>(_ operation: () async throws -> T) async throws -> T {
-        do {
-            return try await operation()
-        } catch AppError.network(.serverError(let statusCode)) where statusCode == 409 {
-            throw AppError.network(.conflict)
-        } catch let error as AppError {
-            throw error
-        } catch is DecodingError {
-            throw AppError.network(.invalidResponse)
-        } catch {
-            throw AppError.unknown(message: error.localizedDescription)
-        }
     }
 }
 

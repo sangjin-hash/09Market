@@ -58,16 +58,16 @@ final class AuthCoordinatorImpl: AuthCoordinator {
             })
             .disposed(by: self.disposeBag)
 
-        // 3. 에러 시 ErrorDialog 표시 (authVC 위에 표시)
+        // 3. 에러 시 ErrorHandler로 처리 (authVC 위에 표시)
         self.authReactor.state.map(\.error)
             .compactMap { $0 }
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] error in
                 guard let self else { return }
-                ErrorDialog.show(
-                    on: viewController,
+                ErrorHandler.handle(
                     error: error,
-                    retryAction: { self.authReactor.action.onNext(.checkAuth) }
+                    on: viewController,
+                    action: { self.authReactor.action.onNext(.checkAuth) }
                 )
             })
             .disposed(by: self.disposeBag)

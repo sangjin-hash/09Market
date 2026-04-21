@@ -8,6 +8,7 @@
 import UIKit
 
 import AppCore
+import Domain
 import Home
 import Shared_DI
 import Shared_ReactiveX
@@ -23,12 +24,12 @@ final class HomeCoordinatorImpl: HomeCoordinator {
     // MARK: - Delegate
 
     public weak var delegate: HomeCoordinatorDelegate?
-    
-    
-    // MARK: - Reactor
-    
+
+
+    // MARK: - Properties
+
     private let homeViewController: HomeViewController
-    private let homeTop10ViewController: HomeTop10ViewController
+    private let resolver: Resolver
     private let disposeBag = DisposeBag()
 
 
@@ -37,11 +38,11 @@ final class HomeCoordinatorImpl: HomeCoordinator {
     public init(
         navigationController: UINavigationController,
         homeViewController: HomeViewController,
-        homeTop10ViewController: HomeTop10ViewController
+        resolver: Resolver
     ) {
         self.navigationController = navigationController
         self.homeViewController = homeViewController
-        self.homeTop10ViewController = homeTop10ViewController
+        self.resolver = resolver
     }
 
 
@@ -49,30 +50,71 @@ final class HomeCoordinatorImpl: HomeCoordinator {
 
     public func start() {
         guard let reactor = self.homeViewController.reactor else { return }
-        
+
         reactor.pulse(\.$loginConfirmed)
             .filter { $0 }
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] _ in
-                self?.delegate?.homeDidRequestLogin()
+                guard let self else { return }
+                self.delegate?.homeDidRequestLogin()
             })
             .disposed(by: self.disposeBag)
-        
+
         reactor.pulse(\.$showTop10)
             .filter { $0 }
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] _ in
-                self?.showTop10()
+                guard let self else { return }
+                self.showTop10()
             })
             .disposed(by: self.disposeBag)
-        
+
+        reactor.pulse(\.$openCreatePost)
+            .filter { $0 }
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] _ in
+                guard let self else { return }
+                self.showCreatePost()
+            })
+            .disposed(by: self.disposeBag)
+
         self.navigationController.pushViewController(self.homeViewController, animated: true)
     }
-    
-    
+
+
     // MARK: - Top10
-    
-    func showTop10() {
-        self.navigationController.pushViewController(self.homeTop10ViewController, animated: true)
+
+    private func showTop10() {
+        let coordinator = self.resolver.resolve(
+            HomeTop10Coordinator.self,
+            argument: self.navigationController
+        )!
+        self.addChild(coordinator)
+        coordinator.start()
+    }
+
+
+    // MARK: - CreatePost
+
+    private func showCreatePost() {
+        let coordinator = self.resolver.resolve(
+            HomeCreatePostCoordinator.self,
+            argument: self.navigationController
+        )!
+        coordinator.delegate = self
+        self.addChild(coordinator)
+        coordinator.start()
+    }
+}
+
+
+// MARK: - HomeCreatePostCoordinatorDelegate
+
+extension HomeCoordinatorImpl: HomeCreatePostCoordinatorDelegate {
+    func createPostDidComplete(post: Post) {}
+
+    func createPostCoordinatorDidFinish() {
+        guard let coordinator = self.childCoordinators.first(where: { $0 is HomeCreatePostCoordinator }) else { return }
+        self.removeChild(coordinator)
     }
 }

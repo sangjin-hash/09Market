@@ -5,8 +5,8 @@
 | 항목 | 내용 |
 |------|------|
 | **작성일** | 2026-03-04 |
-| **수정일** | 2026-03-10 |
-| **문서버전** | v1.1 |
+| **수정일** | 2026-04-21 |
+| **문서버전** | v1.2 |
 | **작성자** | Sangjin Lee |
 
 앱 실행 시 Keychain 토큰 상태를 기반으로 익명/로그인/미인증 상태를 판별하고, 소셜 로그인(Google, Apple) 및 익명 세션을 관리하는 인증 기능이다.
@@ -91,10 +91,15 @@ classDiagram
     }
     class AppError {
         <<enum>>
-        network · auth · storage · unknown
+        network · auth · keychain · client · unknown
         +handleStrategy : HandleStrategy
         +isRequireReAuth : Bool
         +message : String
+    }
+    class ErrorHandler {
+        <<enum>>
+        +loginRequiredStream : PublishSubject~Void~
+        +handle(error, on, action?)
     }
 
     %% ── Domain Layer : Entity ──
@@ -298,9 +303,11 @@ graph TB
 |------|------------|------|
 | `Core/Sources/Store/UserStore.swift` | `UserStore` | `BehaviorRelay<User?>`로 앱 전역 사용자 상태 관리 |
 | `Core/Sources/Store/AuthProvider.swift` | `AuthProvider` (enum) | 소셜 로그인 제공자 식별 (`google`, `apple`) |
-| `Core/Sources/Error/AppError.swift` | `AppError` (enum) | 통합 에러 타입. `handleStrategy`로 UI 처리 전략 결정 |
+| `Core/Sources/Error/AppError.swift` | `AppError` (enum) | 통합 에러 타입. `handleStrategy`로 UI 처리 전략 결정. `storage` → `keychain`으로 변경 |
 | `Core/Sources/Error/AuthErrorType.swift` | `AuthErrorType` (enum) | `sessionExpired`, `invalidCredentials`, `providerFailed`, `rateLimited` |
-| `Core/Sources/Error/Components/ErrorDialog.swift` | `ErrorDialog` | `AppError.handleStrategy` 기반으로 에러 다이얼로그 표시 |
+| `Core/Sources/Error/Types/KeychainErrorType.swift` | `KeychainErrorType` (enum) | `saveFailed`, `loadFailed`, `deleteFailed`, `notFound` |
+| `Core/Sources/Error/ErrorHandler.swift` | `ErrorHandler` (enum) | 모든 화면의 에러 처리 단일 진입점. `loginRequiredStream`으로 전역 재인증 이벤트 발행 |
+| `Core/Sources/Error/Components/ErrorDialog.swift` | `ErrorDialog` | `showRetryAlert` / `showConfirmAlert` - ErrorHandler 내부에서만 사용 |
 
 #### Util 레이어
 
@@ -458,6 +465,7 @@ func refreshToken() async throws {
 **핵심 코드 - AuthCoordinatorImpl.start()**
 
 Splash를 표시하고, ReactorKit 패턴으로 인증 결과와 에러를 구독한다.
+에러는 `ErrorHandler.handle()`을 통해 처리하며, `retryable` 에러에만 재시도 액션(`.checkAuth`)을 전달한다.
 
 ```swift
 public func start() {
@@ -474,16 +482,16 @@ public func start() {
         })
         .disposed(by: self.disposeBag)
 
-    // 에러 → ErrorDialog (재시도 가능)
+    // 에러 → ErrorHandler (handleStrategy에 따라 자동 분기)
     self.authReactor.state.map(\.error)
         .compactMap { $0 }
         .observe(on: MainScheduler.instance)
         .subscribe(onNext: { [weak self] error in
             guard let self else { return }
-            ErrorDialog.show(
-                on: viewController,
+            ErrorHandler.handle(
                 error: error,
-                retryAction: { self.authReactor.action.onNext(.checkAuth) }
+                on: viewController,
+                action: { self.authReactor.action.onNext(.checkAuth) }
             )
         })
         .disposed(by: self.disposeBag)

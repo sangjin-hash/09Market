@@ -43,7 +43,7 @@ public final class AuthLocalDataSourceImpl: AuthLocalDataSource {
     public func saveTokens(accessToken: String, refreshToken: String) throws {
         guard let accessData = accessToken.data(using: .utf8),
               let refreshData = refreshToken.data(using: .utf8) else {
-            throw AppError.storage(.saveFailed)
+            throw AppError.keychain(.saveFailed)
         }
 
         do {
@@ -51,6 +51,8 @@ public final class AuthLocalDataSourceImpl: AuthLocalDataSource {
             try self.keychainClient.save(key: Constants.KeychainKey.refreshToken, data: refreshData)
         } catch let error as KeychainError {
             throw KeychainErrorMapper.map(error)
+        } catch {
+            throw AppError.unknown(message: error.localizedDescription)
         }
     }
 
@@ -70,18 +72,22 @@ public final class AuthLocalDataSourceImpl: AuthLocalDataSource {
             try self.keychainClient.deleteAll()
         } catch let error as KeychainError {
             throw KeychainErrorMapper.map(error)
+        } catch {
+            throw AppError.unknown(message: error.localizedDescription)
         }
     }
 
     public func saveAnonymousFlag(_ isAnonymous: Bool) throws {
         guard let data = String(isAnonymous).data(using: .utf8) else {
-            throw AppError.storage(.saveFailed)
+            throw AppError.keychain(.saveFailed)
         }
         
         do {
             try self.keychainClient.save(key: Constants.KeychainKey.isAnonymous, data: data)
         } catch let error as KeychainError {
             throw KeychainErrorMapper.map(error)
+        } catch {
+            throw AppError.unknown(message: error.localizedDescription)
         }
     }
 

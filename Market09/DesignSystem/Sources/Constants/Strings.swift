@@ -52,4 +52,32 @@ public enum Strings {
         public static let appleLogin = "애플 로그인"
         public static let splash = "스플래시"
     }
+    
+    public enum CreatePost {
+        public static let title = "공구 등록하기"
+        public static let sectionInfluencer = "인플루언서 검색"
+        public static let influencerPlaceholder = "알파벳이나 이름을 입력하세요"
+        public static let sectionProductImage = "상품 이미지"
+        public static let imageAddButton = "공구 이미지 추가"
+        public static let sectionProductName = "상품명"
+        public static let productNamePlaceholder = "공구 상품명을 입력하세요"
+        public static let sectionPrice = "가격"
+        public static let priceSuffix = "원"
+        public static let sectionCategory = "카테고리"
+        public static let categoryPlaceholder = "카테고리를 선택하세요"
+        public static let sectionStartDate = "시작일"
+        public static let sectionEndDate = "마감일"
+        public static let datePlaceholder = "연도. 월. 일."
+        public static let submitButton = "공구 등록하기"
+        public static let imageFileSizeError = "10MB 이내 파일만 선택 가능합니다"
+        public static let influencerSearchEmpty = "검색 결과가 없습니다"
+    }
+
+    public enum RegisterInfluencer {
+        public static let title = "인플루언서 등록하기"
+        public static let usernamePlaceholder = "인스타그램 username을 입력하세요"
+        public static let submitButton = "등록 요청"
+        public static let successMessage = "추가해주신 인플루언서는 심사 이후 공구 게시글들이 추가될 예정입니다."
+        public static let duplicateMessage = "이미 등록된 인플루언서입니다"
+    }
 }

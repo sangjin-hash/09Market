@@ -14,6 +14,7 @@ import Home
 import Login
 import Profile
 import Shared_DI
+import Shared_ReactiveX
 
 final class AppCoordinator: Coordinator {
 
@@ -35,6 +36,7 @@ final class AppCoordinator: Coordinator {
     private let window: UIWindow
     private let diContainer: AppDIContainer
     private var loginContext: LoginContext?
+    private let disposeBag = DisposeBag()
     
 
     // MARK: - Init
@@ -51,6 +53,18 @@ final class AppCoordinator: Coordinator {
     func start() {
         self.window.rootViewController = self.navigationController
         self.window.makeKeyAndVisible()
+
+        ErrorHandler.loginRequiredStream
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] in
+                guard let self else { return }
+                self.loginContext = .requireLogin
+                self.showLogin()
+                self.navigationController.topViewController?.navigationItem.hidesBackButton = true
+                self.navigationController.interactivePopGestureRecognizer?.isEnabled = false
+            })
+            .disposed(by: self.disposeBag)
+
         self.startAuth()
     }
 }
@@ -119,14 +133,6 @@ extension AppCoordinator: ProfileCoordinatorDelegate {
     func profileDidRequestLogin() {
         self.loginContext = .profile
         showLogin()
-    }
-
-    /// 세션만료/인증실패로 강제 재인증 필요 (back 버튼 X, 스와이프 X)
-    func profileDidRequireLogin() {
-        self.loginContext = .requireLogin
-        showLogin()
-        self.navigationController.topViewController?.navigationItem.hidesBackButton = true
-        self.navigationController.interactivePopGestureRecognizer?.isEnabled = false
     }
 }
 

@@ -22,45 +22,90 @@ final class HomeReactor: Reactor, FactoryModule {
     }
 
     enum Action {
+        // 공구 게시글 조회(필터링 포함) 및 페이지네이션
         case fetchPostList
         case loadNextPage
         case selectCategory(GroupBuyingCategory?)
         case searchKeyword(String)
+        
+        // 게시글 좋아요
         case toggleLike(String, Bool)
+        
+        // 세션 만료 or 익명 로그인 상태에서 로그인이 필요한 서비스 이용할 때 -> 로그인 유도
         case confirmLogin
+        
+        // Top10 공구
         case tapTop10Banner
+        
+        // FAB
+        case refreshFABVisibility
+        case tapFAB
+        case dismissFABMenu
+        case tapCreatePost
+        case tapRegisterInfluencer
+        case postRegistrationCallback(Post)
+        
     }
 
     enum Mutation {
+        // 화면 기본 상태(Loading, Error)
         case setLoading(Bool)
+        case setError(AppError?)
+        
+        // 공구 게시글 조회
         case setFetchCompleted(Page<Post>)
         case setSelectedCategory(GroupBuyingCategory?)
         case setKeyword(String)
-        case setError(AppError?)
+        
+        // 게시글 좋아요
         case setLikeStatus(String, Bool)
-        case setNeedsLogin
-        case setLoginConfirmed
+        
+        // 로그인
+        case setNeedsLogin // '로그인 필요' 다이얼로그 표시
+        case setLoginConfirmed // 로그인 화면으로 이동
+        
+        // Top10 공구
         case setShowTop10
+        
+        // FAB
+        case setFABVisible(Bool)
+        case setFABMenuOpen(Bool)
+        case setCreatePostOpen
+        case setRegisterInfluencerOpen
+        case setPostRegistrationCallback(Post)
     }
 
     struct State {
+        // 화면 기본 상태(Loading, Error)
+        var isLoading: Bool = false
+        @Pulse var error: AppError?
+        
+        // 공구 게시글 조회
         var sections: [HomeSectionModel] = []
         var posts: [Post] = []
         var selectedCategory: GroupBuyingCategory?
         var searchKeyword: String?
         var currentPage: Int = 1
         var hasNextPage: Bool = true
-        var isLoading: Bool = false
-        @Pulse var error: AppError?
+        
+        // 로그인
         @Pulse var needsLogin: Bool = false
         @Pulse var loginConfirmed: Bool = false
+        
+        // Top10 공구
         @Pulse var showTop10: Bool = false
+        
+        // FAB
+        var isFABVisible: Bool = false
+        var isFABMenuOpen: Bool = false
+        @Pulse var openCreatePost: Bool = false
+        @Pulse var openRegisterInfluencer: Bool = false
     }
 
     let initialState: State = State()
     private let dependency: Dependency
     private let pageSize = 30
-    private let searchKeyword = BehaviorSubject<String>(value: "")
+    private let searchKeywordSubject = BehaviorSubject<String>(value: "")
     private var likingPostIds: Set<String> = []
 
     required init(dependency: Dependency, payload: Void) {
@@ -74,6 +119,8 @@ final class HomeReactor: Reactor, FactoryModule {
 extension HomeReactor {
     func mutate(action: Action) -> Observable<Mutation> {
         switch action {
+        
+        // 공구 게시글 조회
         case .fetchPostList:
             return fetchPosts(page: self.currentState.currentPage)
 
@@ -99,10 +146,11 @@ extension HomeReactor {
             ])
             
         case .searchKeyword(let keyword):
-            self.searchKeyword.onNext(keyword)
+            self.searchKeywordSubject.onNext(keyword)
             return .just(.setKeyword(keyword))
             
-        // isLiked -> 좋아요 버튼을 누른 시점의 좋아요 상태(좋아요 요청 호출 전)
+            
+        // 게시글 좋아요
         case .toggleLike(let postId, let isLiked):
             guard self.dependency.userStore.isLoggedIn else {
                 return .just(.setNeedsLogin)
@@ -132,17 +180,47 @@ extension HomeReactor {
                 .do(onDispose: { self.likingPostIds.remove(postId) })
             ])
             
+            
+        // 로그인
         case .confirmLogin:
             return .just(.setLoginConfirmed)
             
         case .tapTop10Banner:
             return .just(.setShowTop10)
+            
+            
+        // FAB
+        case .refreshFABVisibility:
+            return .just(.setFABVisible(self.dependency.userStore.isLoggedIn))
+            
+        case .tapFAB:
+            return .just(.setFABMenuOpen(true))
+            
+        case .dismissFABMenu:
+            return .just(.setFABMenuOpen(false))
+            
+        case .tapCreatePost:
+            return .concat([
+                .just(.setFABMenuOpen(false)),
+                .just(.setCreatePostOpen)
+            ])
+            
+        case .tapRegisterInfluencer:
+            return .concat([
+                .just(.setFABMenuOpen(false)),
+                .just(.setRegisterInfluencerOpen)
+            ])
+            
+        case .postRegistrationCallback(let post):
+            return .just(.setPostRegistrationCallback(post))
         }
     }
 
     func reduce(state: State, mutation: Mutation) -> State {
         var newState = state
         switch mutation {
+            
+        // 화면 기본 상태(Loading, Error)
         case .setLoading(let isLoading):
             newState.isLoading = isLoading
             newState.sections = self.buildSections(
@@ -150,7 +228,12 @@ extension HomeReactor {
                 posts: newState.posts,
                 isLoading: newState.isLoading
             )
-
+            
+        case .setError(let error):
+            newState.error = error
+            
+        
+        // 공구 게시글 조회
         case .setFetchCompleted(let page):
             if page.page == 1 {
                 newState.posts = page.data
@@ -178,6 +261,8 @@ extension HomeReactor {
         case .setKeyword(let keyword):
             newState.searchKeyword = keyword
             
+        
+        // 게시글 좋아요
         case .setLikeStatus(let postId, let isLiked):
             newState.posts = state.posts.map { post in
                 guard post.id == postId else { return post }
@@ -192,24 +277,47 @@ extension HomeReactor {
                 posts: newState.posts,
                 isLoading: newState.isLoading
             )
-            
+        
+        
+        // 로그인
         case .setNeedsLogin:
             newState.needsLogin = true
             
         case .setLoginConfirmed:
             newState.loginConfirmed = true
             
+        
+        // Top10 공구
         case .setShowTop10:
             newState.showTop10 = true
-
-        case .setError(let error):
-            newState.error = error
+            
+        
+        // FAB
+        case .setFABVisible(let isFABVisible):
+            newState.isFABVisible = isFABVisible
+            
+        case .setFABMenuOpen(let isFABMenuOpen):
+            newState.isFABMenuOpen = isFABMenuOpen
+            
+        case .setCreatePostOpen:
+            newState.openCreatePost = true
+            
+        case .setRegisterInfluencerOpen:
+            newState.openRegisterInfluencer = true
+            
+        case .setPostRegistrationCallback(let post):
+            newState.posts.insert(post, at: 0)
+            newState.sections = self.buildSections(
+                selectedCategory: newState.selectedCategory,
+                posts: newState.posts,
+                isLoading: newState.isLoading
+            )
         }
         return newState
     }
     
     func transform(mutation: Observable<Mutation>) -> Observable<Mutation> {
-        let searchMutation = self.searchKeyword
+        let searchMutation = self.searchKeywordSubject
             .skip(1)
             .flatMapLatest { keyword in
                 self.fetchPosts(page: 1, keyword: keyword)
