@@ -30,21 +30,30 @@ public final class KeychainClientImpl: KeychainClient {
     public init() {}
     
     public func save(key: String, data: Data) throws {
-        try? delete(key: key)
-        
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: self.service,
             kSecAttrAccount as String: key,
-            kSecValueData as String: data,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
         ]
 
-        let status = SecItemAdd(query as CFDictionary, nil)
+        let addAttributes: [String: Any] = query.merging([kSecValueData as String: data]) { _, new in new }
+        let addStatus = SecItemAdd(addAttributes as CFDictionary, nil)
 
-        guard status == errSecSuccess else {
-            throw KeychainError.saveFailed(status)
+        if addStatus == errSecSuccess {
+            return
         }
+
+        if addStatus == errSecDuplicateItem {
+            let updateAttributes: [String: Any] = [kSecValueData as String: data]
+            let updateStatus = SecItemUpdate(query as CFDictionary, updateAttributes as CFDictionary)
+            guard updateStatus == errSecSuccess else {
+                throw KeychainError.saveFailed(updateStatus)
+            }
+            return
+        }
+
+        throw KeychainError.saveFailed(addStatus)
     }
     
     public func load(key: String) -> Data? {
