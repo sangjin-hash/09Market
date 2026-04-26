@@ -10,6 +10,7 @@ import UIKit
 import AppCore
 import DesignSystem
 import Home
+import Schedule
 import Profile
 import Shared_DI
 
@@ -49,15 +50,14 @@ final class TabBarCoordinator: Coordinator {
     
     func start() {
         let homeNav = UINavigationController()
-        // TODO: 추후 기획 후 해당 Nav 변경할 것
-        let tempNav = UINavigationController()
+        let scheduleNav = UINavigationController()
         let profileNav = UINavigationController()
 
         setupHomeTab(homeNav)
-        setupTempTab(tempNav)
+        setupScheduleTab(scheduleNav)
         setupProfileTab(profileNav)
 
-        self.tabBarController.viewControllers = [homeNav, tempNav, profileNav]
+        self.tabBarController.viewControllers = [homeNav, scheduleNav, profileNav]
         self.navigationController.setViewControllers([self.tabBarController], animated: false)
         self.navigationController.setNavigationBarHidden(true, animated: false)
     }
@@ -76,13 +76,12 @@ private extension TabBarCoordinator {
         coordinator.start()
     }
 
-    // TODO: 추후 기획 후 Coordinator 변경할 것
-    func setupTempTab(_ nav: UINavigationController) {
-        nav.tabBarItem = UITabBarItem(title: Strings.Tab.temp, image: UIImage(systemName: "square.grid.2x2"), tag: 1)
-        // TODO: TempCoordinator 연결
-        let placeholder = UIViewController()
-        placeholder.view.backgroundColor = .systemBackground
-        nav.setViewControllers([placeholder], animated: false)
+    /// 스케쥴 탭 설정
+    func setupScheduleTab(_ nav: UINavigationController) {
+        nav.tabBarItem = UITabBarItem(title: "일정", image: UIImage(systemName: "calendar"), tag: 1)
+        let coordinator: ScheduleCoordinator = self.diContainer.resolver.resolve(argument: nav)
+        addChild(coordinator)
+        coordinator.start()
     }
 
     /// 프로필 탭 설정 및 delegate 연결
