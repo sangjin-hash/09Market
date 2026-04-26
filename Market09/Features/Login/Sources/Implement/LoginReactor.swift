@@ -4,14 +4,13 @@
 //
 //  Created by Sangjin Lee
 //
-import Foundation
 
 import AppCore
 import Domain
 import Shared_DI
 import Shared_ReactiveX
+import Util
 
-import CryptoKit
 
 final class LoginReactor: Reactor, FactoryModule {
     
@@ -23,6 +22,7 @@ final class LoginReactor: Reactor, FactoryModule {
         case googleLoginCompleted(idToken: String)
         case googleLoginFailed
         case appleLoginTapped
+        case appleLoginFailed
         case appleLoginCompleted(idToken: String, nonce: String)
     }
     
@@ -73,9 +73,12 @@ extension LoginReactor {
         // TODO: - 추후 Apple Login 연동 때 작업할 것
             
         case .appleLoginTapped:
-            let nonce = Self.randomNonceString()
-            let hashedNonce = Self.sha256(nonce)
+            let nonce = NonceGenerator.randomNonceString()
+            let hashedNonce = NonceGenerator.sha256(nonce)
             return .just(.setAppleLoginNonce(raw: nonce, hashed: hashedNonce))
+
+        case .appleLoginFailed:
+            return .just(.setError(AppError.auth(.appleLoginFailed)))
             
         case .appleLoginCompleted(let idToken, let nonce):
             return Observable.concat([
@@ -114,17 +117,3 @@ extension LoginReactor {
     }
 }
 
-
-// MARK: - Nonce Generation
-
-private extension LoginReactor {
-    static func randomNonceString(length: Int = 32) -> String {
-        let charset = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
-        return String((0..<length).map { _ in charset.randomElement()! })
-    }
-
-    static func sha256(_ input: String) -> String {
-        let hashed = SHA256.hash(data: Foundation.Data(input.utf8))
-        return hashed.compactMap { String(format: "%02x", $0) }.joined()
-    }
-}

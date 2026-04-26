@@ -5,6 +5,7 @@
 //  Created by Sangjin Lee
 //
 
+import AuthenticationServices
 import UIKit
 
 import AppCore
@@ -13,7 +14,6 @@ import Shared_DI
 import Shared_ReactiveX
 
 import GoogleSignIn
-import AuthenticationServices
 
 final class LoginViewController: UIViewController, FactoryModule {
     
@@ -101,8 +101,6 @@ extension LoginViewController: View {
             .bind(to: reactor.action)
             .disposed(by: self.disposeBag)
 
-      // MARK: - State
-
       reactor.pulse(\.$appleLoginHashedNonce)
             .compactMap{ $0 }
             .observe(on: MainScheduler.instance)
@@ -187,11 +185,13 @@ extension LoginViewController: ASAuthorizationControllerDelegate {
             return
         }
 
-      guard let nonce = self.reactor?.currentState.appleLoginNonce else { return }
-        self.reactor?.action.onNext(.appleLoginCompleted(idToken: idToken, nonce: nonce))
+      guard let reactor = self.reactor else { return }
+      guard let nonce = reactor.currentState.appleLoginNonce else { return }
+      reactor.action.onNext(.appleLoginCompleted(idToken: idToken, nonce: nonce))
     }
 
     func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
-        print("Apple Login Error: \(error.localizedDescription)")
+        if (error as? ASAuthorizationError)?.code == .canceled { return }
+        self.reactor?.action.onNext(.appleLoginFailed)
     }
 }

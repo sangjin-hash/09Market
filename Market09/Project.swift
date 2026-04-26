@@ -69,6 +69,7 @@ let project = Project(
                 "App/Sources",
                 "App/Resources",
             ],
+            entitlements: .file(path: "App/App.entitlements"),
             dependencies: [
                 .module(.domain),
                 .module(.domainImpl),
