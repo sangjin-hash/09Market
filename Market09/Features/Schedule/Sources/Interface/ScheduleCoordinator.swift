@@ -2,8 +2,6 @@
 //  ScheduleCoordinator.swift
 //  Schedule
 //
-//  Created by 23ji
-//
 
 import AppCore
 

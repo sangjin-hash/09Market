@@ -12,6 +12,7 @@ import DomainImpl
 import HomeImpl
 import LoginImpl
 import ProfileImpl
+import ScheduleImpl
 import Shared_DI
 
 final class AppDIContainer {
@@ -32,6 +33,7 @@ final class AppDIContainer {
             HomeAssembly(),
             LoginAssembly(),
             ProfileAssembly(),
+            ScheduleAssembly(),
         ])
     }
 }

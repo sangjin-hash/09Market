@@ -2,7 +2,7 @@
 //  Project.swift
 //  Schedule
 //
-//  Created by 23ji
+//  Created by Sangjin Lee
 //
 
 import ProjectDescription
@@ -13,16 +13,18 @@ let project = Project(
     targets: Project.interfaceTargets(
         name: "Schedule",
         dependencies: [
-            .module(.core),
+            .module(.core)
         ]
     ) + Project.implementTargets(
         name: "Schedule",
         dependencies: [
-          .module(.core),
-          .module(.domain),
-          .module(.sharedDI),
-          .module(.sharedReactiveX),
-          .external(name: "Kingfisher")
+            .module(.core),
+            .module(.domain),
+            .module(.util),
+            .module(.designSystem),
+            .module(.sharedReactiveX),
+            .module(.sharedDI),
+            .module(.sharedUI)
         ]
     )
 )
